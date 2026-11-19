@@ -11,6 +11,8 @@ juce_add_plugin(AJERRY
     PRODUCT_NAME "AJERRY"
 )
 
+juce_generate_juce_header(AJERRY)
+
 target_sources(AJERRY PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
@@ -25,4 +27,8 @@ target_compile_definitions(AJERRY PUBLIC
 target_link_libraries(AJERRY PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
+    juce::juce_audio_processors
+    juce::juce_gui_basics
+    juce::juce_graphics
+    juce::juce_gui_extra
 )
