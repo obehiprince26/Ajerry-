@@ -33,12 +33,12 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  const float thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load();
  const float ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);
- compressor.setThreshold(thr);compressor.setRatio(ratio);delayLine.setDelay(juce::jlimit(1.0f,(float)getSampleRate()-1.0f,ms*getSampleRate()/1000.0f));
- reverb.setRoomSize(juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f));reverb.setWetLevel(rev);reverb.setDryLevel(1.0f-rev);
+ compressor.setThreshold(thr);compressor.setRatio(ratio);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));
+ juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverb.setParameters(reverbParams);
  for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.15f);}
  juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);compressor.process(ctx);
  for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
- b.applyGain(juce::Decibels::decibelsToGain(gain));reverb.processStereo(b.getWritePointer(0),b.getWritePointer(1),b.getNumSamples());
+ b.applyGain(juce::Decibels::decibelsToGain(gain)); reverb.process(ctx);
 }
 juce::AudioProcessorEditor* AjerryVST3AudioProcessor::createEditor(){return new AjerryVST3AudioProcessorEditor(*this);}
 void AjerryVST3AudioProcessor::getStateInformation(juce::MemoryBlock& dest){auto state=parameters.copyState();std::unique_ptr<juce::XmlElement> xml(state.createXml());copyXmlToBinary(*xml,dest);}
