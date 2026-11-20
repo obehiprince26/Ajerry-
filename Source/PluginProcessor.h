@@ -26,5 +26,6 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
     juce::AudioProcessorValueTreeState apvts;
 private:
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParams();
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AJERRYAudioProcessor)
 };
