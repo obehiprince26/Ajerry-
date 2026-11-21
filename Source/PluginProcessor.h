@@ -26,6 +26,7 @@ std::atomic<int> spotMidiNote{-1};
 std::atomic<float> spotMidiFloat{-1.0f};
  std::array<std::atomic<float>,12> spotKeyHistogram{};
  std::atomic<int> spotDetectedKey{0};
+ std::atomic<bool> spotDetectedMinor{false};
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter,softenFilter;
  std::array<juce::dsp::IIR::Filter<float>,4> eqFilters;
