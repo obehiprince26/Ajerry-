@@ -67,8 +67,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   b.setSample(0,i,left*(1.0f-doubler*0.30f)+delayedR*doubler*0.30f);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-doubler*0.30f)+delayedL*doubler*0.30f);
  }
  for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry+echo*0.22f);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
- if(b.getNumChannels()>=2) reverb.processStereo(b.getWritePointer(0),b.getWritePointer(1),b.getNumSamples());
- else if(b.getNumChannels()==1) reverb.processMono(b.getWritePointer(0),b.getNumSamples());
+ juce::dsp::ProcessContextReplacing<float> reverbContext{juce::dsp::AudioBlock<float>(b)};
+ reverb.process(reverbContext);
  b.applyGain(juce::Decibels::decibelsToGain(outputGain));
 }
 
