@@ -27,6 +27,7 @@ private:
  juce::dsp::Reverb reverb;
  juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
  float gateEnvelope=0.0f;
+ float doublerPhase=0.0f;
  bool gateIsOpen=false;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
