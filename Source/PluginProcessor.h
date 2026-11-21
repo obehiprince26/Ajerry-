@@ -37,6 +37,7 @@ private:
  int pitchAnalysisWrite=0, pitchAnalysisCount=0, pitchAnalysisCountdown=0;
  float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
  int pitchHoldSamples=0;
+ int stableMidiNote=-1, candidateMidiNote=-1, candidateNoteFrames=0;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchRatioSmoothed;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchConfidenceSmoothed;
  float pitchConfidence=0.0f;
