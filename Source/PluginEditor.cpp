@@ -231,7 +231,7 @@ void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     if(page==1 && spotSpeedBounds.contains(pos)){activeReverbKnob=21;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("tuneSpeed")->load();return;}
     if(page==1 && spotLockBounds.contains(pos)){auto* q=proc.parameters.getParameter("spotKeyLock");if(q)q->setValueNotifyingHost(q->convertTo0to1(proc.parameters.getRawParameterValue("spotKeyLock")->load()>0.5f?0.0f:1.0f));repaint();return;}
     if(page==1 && spotBypassBounds.contains(pos)){auto* q=proc.parameters.getParameter("spotBypass");if(q)q->setValueNotifyingHost(q->convertTo0to1(proc.parameters.getRawParameterValue("spotBypass")->load()>0.5f?0.0f:1.0f));repaint();return;}
-    if(page==1 && spotKeyBounds.contains(pos)){float current=proc.parameters.getRawParameterValue("spotKey")->load();setParameter("spotKey",(current+1.0f)%12);repaint();return;}
+    if(page==1 && spotKeyBounds.contains(pos)){int current=(int)proc.parameters.getRawParameterValue("spotKey")->load();setParameter("spotKey",(float)((current+1)%12));repaint();return;}
     if(page==0 && gateBypassBounds.contains(pos)){auto* param=proc.parameters.getParameter("gateBypass");if(param)param->setValueNotifyingHost(param->convertTo0to1(proc.parameters.getRawParameterValue("gateBypass")->load()>0.5f?0.0f:1.0f));repaint();return;}
     if(page==3 && compThresholdBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("threshold")->load();return;}
     if(page==3 && compRatioBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("ratio")->load();return;}
