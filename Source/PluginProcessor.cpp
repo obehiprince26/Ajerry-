@@ -74,6 +74,8 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     gateEnvelope = 0.0f;
     doublerPhase = 0.0f;
     pitchAnalysisBuffer.fill(0.0f);
+    pitchFrameScratch.fill(0.0f);
+    pitchCmndScratch.fill(0.0f);
     pitchAnalysisWrite = pitchAnalysisCount = pitchAnalysisCountdown = 0;
     detectedPitchHz = 0.0f;
     pitchRatio = 1.0f;
@@ -153,17 +155,31 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     const float gateCloseThreshold = gateThreshold * 0.72f; // hysteresis prevents chatter.
     const float sampleRate = static_cast<float>(getSampleRate());
 
+    // Analyse the strongest input channel rather than averaging stereo channels;
+    // opposite-polarity stereo vocals must not cancel and appear unvoiced.
+    int pitchAnalysisChannel = 0;
+    float strongestChannelEnergy = -1.0f;
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        float channelEnergy = 0.0f;
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            const float value = buffer.getSample(channel, sample);
+            channelEnergy += value * value;
+        }
+        if (channelEnergy > strongestChannelEnergy)
+        {
+            strongestChannelEnergy = channelEnergy;
+            pitchAnalysisChannel = channel;
+        }
+    }
+
     for (int sample = 0; sample < numSamples; ++sample)
     {
         float detector = 0.0f;
-        float monoForPitch = 0.0f;
         for (int channel = 0; channel < numChannels; ++channel)
-        {
-            const float inputSample = buffer.getSample(channel, sample);
-            detector = juce::jmax(detector, std::abs(inputSample));
-            monoForPitch += inputSample;
-        }
-        monoForPitch /= static_cast<float>(juce::jmax(1, numChannels));
+            detector = juce::jmax(detector, std::abs(buffer.getSample(channel, sample)));
+        const float monoForPitch = buffer.getSample(pitchAnalysisChannel, sample);
 
         // SPOTON: rolling monophonic vocal analysis using a YIN-style difference function.
         pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
@@ -176,7 +192,9 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             const int minLag = juce::jlimit(20, 80, static_cast<int>(sampleRate / 1500.0f));
             const int maxLag = juce::jlimit(minLag + 2, windowSize - 2,
                                             static_cast<int>(sampleRate / 55.0f));
-            std::array<float, windowSize> frame{};
+            auto& frame = pitchFrameScratch;
+            auto& cmnd = pitchCmndScratch;
+            cmnd.fill(0.0f);
             float frameMean = 0.0f;
             for (int n = 0; n < windowSize; ++n)
             {
@@ -198,7 +216,6 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 frameEnergy += value * value;
             }
             const float frameRms = std::sqrt(frameEnergy / static_cast<float>(windowSize));
-            std::array<float, windowSize> cmnd{};
             float cumulativeDifference = 0.0f;
             int bestLag = 0;
             float bestValue = 1.0f;
