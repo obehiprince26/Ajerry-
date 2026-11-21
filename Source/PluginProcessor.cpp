@@ -8,7 +8,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  l.add(std::make_unique<juce::AudioParameterFloat>("gateRange","Gate Range",0.0f,60.0f,40.0f));
  l.add(std::make_unique<juce::AudioParameterBool>("gateBypass","Gate Bypass",false));
  l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));
- l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SpotOn Speed",0.0f,100.0f,50.0f));\n l.add(std::make_unique<juce::AudioParameterInt>("spotKey","SpotOn Key",0,11,0));\n l.add(std::make_unique<juce::AudioParameterBool>("spotKeyLock","SpotOn Key Lock",true));\n l.add(std::make_unique<juce::AudioParameterBool>("spotBypass","SpotOn Bypass",false));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SpotOn Speed",0.0f,100.0f,50.0f));
+l.add(std::make_unique<juce::AudioParameterInt>("spotKey","SpotOn Key",0,11,0));
+l.add(std::make_unique<juce::AudioParameterBool>("spotKeyLock","SpotOn Key Lock",true));
+l.add(std::make_unique<juce::AudioParameterBool>("spotBypass","SpotOn Bypass",false));
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("eqLowFreq","EQ Low Frequency",20.0f,20000.0f,120.0f));
@@ -34,7 +37,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
 }
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
  juce::dsp::ProcessSpec s{sr,(juce::uint32)block,(juce::uint32)getTotalNumOutputChannels()};
- spotDelayBuffer.setSize(2,juce::jmax(512,(int)(sr*0.12)),false,false,true);spotDelayBuffer.clear();spotDelayWrite=0;spotPhaseA=0.0f;spotPhaseB=0.5f;spotRatioSmooth=1.0f;hpFilter.prepare(s);lpFilter.prepare(s);softenFilter.prepare(s);for(auto& f:eqFilters)f.prepare(s);compressor.prepare(s);peakCatcher.prepare(s);delayLine.prepare(s);doublerLine.prepare(s);reverb.reset();
+ spotDelayBuffer.setSize(2,juce::jmax(512,(int)(sr*0.12)),false,false,true);spotDelayBuffer.clear();spotDelayWrite=0;spotPhaseA=0.0f;spotPhaseB=0.5f;spotRatioSmooth=1.0f;for(auto& h:spotKeyHistogram)h.store(0.0f);spotDetectedKey.store(0);hpFilter.prepare(s);lpFilter.prepare(s);softenFilter.prepare(s);for(auto& f:eqFilters)f.prepare(s);compressor.prepare(s);peakCatcher.prepare(s);delayLine.prepare(s);doublerLine.prepare(s);reverb.reset();
  delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));doublerLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));delayLine.reset();doublerLine.reset();hpFilter.reset();lpFilter.reset();softenFilter.reset();for(auto& f:eqFilters)f.reset();compressor.reset();peakCatcher.reset();
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,80.0f);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,16000.0f);
  compressor.setThreshold(-24.0f);compressor.setRatio(2.0f);compressor.setAttack(25.0f);compressor.setRelease(180.0f);
@@ -50,7 +53,9 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   for(int i=0;i<n;++i){float m=0;for(int ch=0;ch<b.getNumChannels();++ch)m+=b.getSample(ch,i);mean+=m/b.getNumChannels();}
   mean/=n;
   for(int lag=minLag;lag<=maxLag;lag++){double corr=0,energyA=0,energyB=0;for(int i=lag;i<n;++i){float a=0,bv=0;for(int ch=0;ch<b.getNumChannels();++ch){a+=b.getSample(ch,i);bv+=b.getSample(ch,i-lag);}a/=b.getNumChannels();bv/=b.getNumChannels();a-=mean;bv-=mean;corr+=a*bv;energyA+=a*a;energyB+=bv*bv;}float norm=(float)(corr/std::sqrt(juce::jmax(1.0e-12,energyA*energyB)));if(norm>best){best=norm;bestLag=lag;}}
-  if(bestLag>0 && best>0.55f){float hz=(float)getSampleRate()/bestLag;spotPitchHz.store(hz);const float midi=69.0f+12.0f*std::log2(hz/440.0f);spotMidiFloat.store(midi);spotMidiNote.store((int)juce::roundToInt(midi));spotConfidence.store(best);}
+  if(bestLag>0 && best>0.55f){float hz=(float)getSampleRate()/bestLag;spotPitchHz.store(hz);const float midi=69.0f+12.0f*std::log2(hz/440.0f);spotMidiFloat.store(midi);spotMidiNote.store((int)juce::roundToInt(midi));spotConfidence.store(best);
+  const int pc=((int)juce::roundToInt(midi)%12+12)%12;for(int k=0;k<12;++k)spotKeyHistogram[k].store(spotKeyHistogram[k].load()*0.995f);spotKeyHistogram[pc].store(spotKeyHistogram[pc].load()+best);
+  const int major[]={0,2,4,5,7,9,11},minor[]={0,2,3,5,7,8,10};float bestScore=-1.0f;int bestRoot=0;for(int root=0;root<12;++root){float maj=0,min=0;for(int i=0;i<7;++i){maj+=spotKeyHistogram[(root+major[i])%12].load();min+=spotKeyHistogram[(root+minor[i])%12].load();}if(maj>bestScore){bestScore=maj;bestRoot=root;}if(min>bestScore){bestScore=min;bestRoot=root;}}spotDetectedKey.store(bestRoot);}
  }
   // Lightweight input analysis for the EQ Listen/Suggestion workflow.
  // Metrics are measured before processing, then published for the editor.
