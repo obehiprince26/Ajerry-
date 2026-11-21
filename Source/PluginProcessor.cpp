@@ -102,6 +102,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     const float ratio = parameters.getRawParameterValue("ratio")->load();
     const float gainDb = parameters.getRawParameterValue("gain")->load();
     const float delayMs = parameters.getRawParameterValue("delayTime")->load();
+    const float spotOnAmount = parameters.getRawParameterValue("tune")->load() * 0.01f;
 
     outputGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(gainDb));
     delayMixSmoothed.setTargetValue(parameters.getRawParameterValue("delayMix")->load() * 0.01f);
@@ -149,8 +150,73 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     for (int sample = 0; sample < numSamples; ++sample)
     {
         float detector = 0.0f;
+        float monoForPitch = 0.0f;
         for (int channel = 0; channel < numChannels; ++channel)
-            detector = juce::jmax(detector, std::abs(buffer.getSample(channel, sample)));
+        {
+            const float inputSample = buffer.getSample(channel, sample);
+            detector = juce::jmax(detector, std::abs(inputSample));
+            monoForPitch += inputSample;
+        }
+        monoForPitch /= static_cast<float>(juce::jmax(1, numChannels));
+
+        // SPOTON: rolling monophonic vocal analysis using a YIN-style difference function.
+        pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
+        pitchAnalysisWrite = (pitchAnalysisWrite + 1) % static_cast<int>(pitchAnalysisBuffer.size());
+        pitchAnalysisCount = juce::jmin(pitchAnalysisCount + 1, static_cast<int>(pitchAnalysisBuffer.size()));
+        if (++pitchAnalysisCountdown >= 1024 && pitchAnalysisCount >= 1024)
+        {
+            pitchAnalysisCountdown = 0;
+            constexpr int windowSize = 1024;
+            constexpr int minLag = 44;
+            constexpr int maxLag = 600;
+            std::array<float, windowSize> frame{};
+            for (int n = 0; n < windowSize; ++n)
+            {
+                const int index = (pitchAnalysisWrite - windowSize + n + static_cast<int>(pitchAnalysisBuffer.size()))
+                                  % static_cast<int>(pitchAnalysisBuffer.size());
+                frame[static_cast<size_t>(n)] = pitchAnalysisBuffer[static_cast<size_t>(index)];
+            }
+            std::array<float, maxLag + 1> cmnd{};
+            float runningDifference = 0.0f;
+            int bestLag = 0;
+            for (int lag = minLag; lag <= maxLag; ++lag)
+            {
+                float sum = 0.0f;
+                for (int n = 0; n < windowSize - lag; ++n)
+                {
+                    const float delta = frame[static_cast<size_t>(n)] - frame[static_cast<size_t>(n + lag)];
+                    sum += delta * delta;
+                }
+                runningDifference += sum;
+                cmnd[static_cast<size_t>(lag)] = runningDifference > 1.0e-12f
+                    ? sum * static_cast<float>(lag - minLag + 1) / runningDifference : 1.0f;
+                if (lag > minLag && cmnd[static_cast<size_t>(lag)] < 0.15f)
+                {
+                    bestLag = lag;
+                    while (bestLag < maxLag && cmnd[static_cast<size_t>(bestLag + 1)] < cmnd[static_cast<size_t>(bestLag)])
+                        ++bestLag;
+                    break;
+                }
+            }
+            if (bestLag > 0 && cmnd[static_cast<size_t>(bestLag)] < 0.25f)
+            {
+                const float left = cmnd[static_cast<size_t>(juce::jmax(minLag, bestLag - 1))];
+                const float centre = cmnd[static_cast<size_t>(bestLag)];
+                const float right = cmnd[static_cast<size_t>(juce::jmin(maxLag, bestLag + 1))];
+                const float denominator = left - 2.0f * centre + right;
+                const float offset = std::abs(denominator) > 1.0e-9f ? 0.5f * (left - right) / denominator : 0.0f;
+                const float refinedLag = static_cast<float>(bestLag) + juce::jlimit(-0.5f, 0.5f, offset);
+                detectedPitchHz = sampleRate / refinedLag;
+                const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
+                const float semitones = (std::round(midi) - midi) * spotOnAmount;
+                pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
+            }
+            else
+            {
+                detectedPitchHz = 0.0f;
+                pitchRatio = 1.0f;
+            }
+        }
 
         const float envelopeCoefficient = detector > gateEnvelope
             ? std::exp(-1.0f / (0.008f * sampleRate))
@@ -165,6 +231,20 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         gateGainSmoothed.setTargetValue(gateIsOpen ? 1.0f : 0.001f);
         const float gateGain = gateGainSmoothed.getNextValue();
         const float outputGain = outputGainSmoothed.getNextValue();
+        const float correctionRatio = pitchRatio;
+        const float pitchRange = juce::jmax(2.0f, sampleRate * 0.030f);
+        const float pitchMinDelay = sampleRate * 0.018f;
+        const float phaseA = pitchShiftPhase;
+        const float phaseB = std::fmod(pitchShiftPhase + 0.5f, 1.0f);
+        const auto delayAtPhase = [correctionRatio, pitchRange, pitchMinDelay](float phase)
+        {
+            const float ramp = correctionRatio >= 1.0f ? 1.0f - phase : phase;
+            return pitchMinDelay + ramp * pitchRange;
+        };
+        const float weightA = 0.5f - 0.5f * std::cos(6.2831853f * phaseA);
+        const float weightB = 1.0f - weightA;
+        pitchShiftPhase += std::abs(1.0f - correctionRatio) / pitchRange;
+        if (pitchShiftPhase >= 1.0f) pitchShiftPhase -= std::floor(pitchShiftPhase);
         const float delayWet = delayMixSmoothed.getNextValue();
         const float doublerAmount = doublerSmoothed.getNextValue();
         const float softenAmount = softenSmoothed.getNextValue();
@@ -174,6 +254,12 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         for (int channel = 0; channel < numChannels; ++channel)
         {
             const float dry = buffer.getSample(channel, sample);
+            const float pitchA = pitchLine.popSample(channel, delayAtPhase(phaseA), false);
+            const float pitchB = pitchLine.popSample(channel, delayAtPhase(phaseB), false);
+            pitchLine.pushSample(channel, dry);
+            const float shifted = pitchA * weightA + pitchB * weightB;
+            const float pitchWet = (detectedPitchHz > 0.0f && spotOnAmount > 0.001f) ? spotOnAmount : 0.0f;
+            const float spotOnSignal = dry * (1.0f - pitchWet) + shifted * pitchWet;
             const float echo = delayLine.popSample(channel);
 
             // Controlled feedback creates smooth, progressively quieter delay repeats.
@@ -189,7 +275,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             const float doubled = doublerLine.popSample(channel);
             doublerLine.pushSample(channel, dry);
 
-            const float delayed = dry * (1.0f - delayWet) + echo * delayWet;
+            const float delayed = spotOnSignal * (1.0f - delayWet) + echo * delayWet;
             const float wide = delayed * (1.0f - doublerAmount * 0.32f)
                              + doubled * (doublerAmount * 0.32f);
             const float drive = 1.0f + softenAmount * 0.65f;
