@@ -29,7 +29,7 @@ private:
  // in the dual-head vocal pitch shifter; the other effect delay lines stay linear.
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> pitchLine{96000};
  juce::dsp::Reverb reverb;
- juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
+ juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayTimeSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
  float gateEnvelope=0.0f;
  float doublerPhase=0.0f;
  std::array<float, 2048> pitchAnalysisBuffer{};
