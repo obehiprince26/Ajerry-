@@ -7,7 +7,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  l.add(std::make_unique<juce::AudioParameterFloat>("gate","Gate",-60.0f,0.0f,-40.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("gateRange","Gate Range",0.0f,60.0f,40.0f));
  l.add(std::make_unique<juce::AudioParameterBool>("gateBypass","Gate Bypass",false));
- l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));\n l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SpotOn Speed",0.0f,100.0f,50.0f));\n l.add(std::make_unique<juce::AudioParameterInt>("spotKey","SpotOn Key",0,11,0));\n l.add(std::make_unique<juce::AudioParameterBool>("spotKeyLock","SpotOn Key Lock",true));\n l.add(std::make_unique<juce::AudioParameterBool>("spotBypass","SpotOn Bypass",false));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SpotOn Speed",0.0f,100.0f,50.0f));\n l.add(std::make_unique<juce::AudioParameterInt>("spotKey","SpotOn Key",0,11,0));\n l.add(std::make_unique<juce::AudioParameterBool>("spotKeyLock","SpotOn Key Lock",true));\n l.add(std::make_unique<juce::AudioParameterBool>("spotBypass","SpotOn Bypass",false));
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("eqLowFreq","EQ Low Frequency",20.0f,20000.0f,120.0f));
