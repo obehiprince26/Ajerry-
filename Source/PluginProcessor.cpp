@@ -17,6 +17,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  l.add(std::make_unique<juce::AudioParameterFloat>("delayMix","Delay Mix",0.0f,100.0f,10.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("reverbTime","Reverb Size",50.0f,2000.0f,300.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("reverbMix","Reverb Mix",0.0f,100.0f,20.0f));
+
+ l.add(std::make_unique<juce::AudioParameterFloat>("gateRange","Gate Range",0.0f,100.0f,75.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("gateAttack","Gate Attack",0.1f,100.0f,5.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SpotOn Speed",1.0f,100.0f,50.0f));
+ l.add(std::make_unique<juce::AudioParameterChoice>("tuneKey","SpotOn Key",juce::StringArray{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"},9));
+ l.add(std::make_unique<juce::AudioParameterChoice>("tuneScale","SpotOn Scale",juce::StringArray{"Chromatic","Major","Minor"},2));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqAmount","EQ Amount",0.0f,100.0f,50.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("softenFreq","Soften Frequency",2000.0f,20000.0f,12000.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("softenMix","Soften Mix",0.0f,100.0f,50.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("doublerDelay","Doubler Delay",8.0f,35.0f,18.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("doublerWidth","Doubler Width",0.0f,100.0f,65.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("delayFeedback","Delay Feedback",0.0f,85.0f,20.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("reverbPreDelay","Reverb Pre-delay",0.0f,100.0f,15.0f));
  l.add(std::make_unique<juce::AudioParameterBool>("bypass","Bypass",false)); return l;
 }
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
