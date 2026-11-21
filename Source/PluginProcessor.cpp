@@ -81,6 +81,8 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     pitchRatio = 1.0f;
     pitchShiftPhase = 0.0f;
     pitchHoldSamples = 0;
+    stableMidiNote = candidateMidiNote = -1;
+    candidateNoteFrames = 0;
     pitchConfidence = 0.0f;
     gateIsOpen = false;
 
@@ -277,7 +279,40 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float refinedLag = static_cast<float>(bestLag) + juce::jlimit(-0.5f, 0.5f, offset);
                 detectedPitchHz = sampleRate / refinedLag;
                 const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
-                const float semitones = (std::round(midi) - midi) * spotOnAmount;
+                const int measuredNote = static_cast<int>(std::round(midi));
+
+                // Require a second consistent analysis frame before changing the
+                // target note. This rejects brief octave jumps and noisy note edges.
+                if (stableMidiNote < 0)
+                {
+                    stableMidiNote = measuredNote;
+                    candidateMidiNote = -1;
+                    candidateNoteFrames = 0;
+                }
+                else if (measuredNote == stableMidiNote)
+                {
+                    candidateMidiNote = -1;
+                    candidateNoteFrames = 0;
+                }
+                else
+                {
+                    if (candidateMidiNote == measuredNote)
+                        ++candidateNoteFrames;
+                    else
+                    {
+                        candidateMidiNote = measuredNote;
+                        candidateNoteFrames = 1;
+                    }
+
+                    if (candidateNoteFrames >= 2)
+                    {
+                        stableMidiNote = candidateMidiNote;
+                        candidateMidiNote = -1;
+                        candidateNoteFrames = 0;
+                    }
+                }
+
+                const float semitones = (static_cast<float>(stableMidiNote) - midi) * spotOnAmount;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
                 pitchConfidence = juce::jlimit(0.0f, 1.0f, (0.25f - bestValue) * 5.0f);
