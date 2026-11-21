@@ -11,12 +11,12 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
  changeTab(0);}
 void AjerryVST3AudioProcessorEditor::changeTab(int p){page=p;for(int i=0;i<8;++i){tabs[i].setColour(juce::TextButton::buttonColourId,juce::Colours::black);tabs[i].setColour(juce::TextButton::textColourOffId,gold);tabs[i].setColour(juce::TextButton::buttonOnColourId,gold);tabs[i].setColour(juce::TextButton::textColourOnId,juce::Colours::black);tabs[i].setToggleState(i==p,juce::dontSendNotification);}
  juce::String a[3],f;const char* ids[3]={"","",""};float mins[3]={0,0,0},maxs[3]={100,100,100};
- switch(p){case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="RELEASE";ids[0]="gate";ids[1]="gateRange";ids[2]="gateRelease";mins[0]=-60;maxs[0]=0;mins[1]=0;maxs[1]=80;mins[2]=10;maxs[2]=1000;f="GATE - threshold, range and release envelope";break;
+ switch(p){case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="GATE";ids[0]="gate";mins[0]=-60;maxs[0]=0;f="Step 1 of 8 - Attack Hold Release AUTO - Always ON";break;
  case 1:a[0]="AMOUNT";a[1]="SPEED";a[2]="KEY";ids[0]="tune";ids[1]="speed";ids[2]="key";mins[1]=1;maxs[1]=100;mins[2]=0;maxs[2]=11;f="SPOTON - Live beat/vocal key analysis | major/minor pitch targeting";break;
  case 2:a[0]="HIGH-PASS";a[1]="LOW-PASS";a[2]="EQ LEARNING";ids[0]="hp";ids[1]="lp";mins[0]=20;maxs[0]=500;mins[1]=2000;maxs[1]=20000;f="EQ: HP/LP connected; learning/suggestion engine pending";break;
- case 3:a[0]="THRESHOLD";a[1]="RATIO";a[2]="ATTACK";ids[0]="threshold";ids[1]="ratio";ids[2]="compAttack";mins[0]=-60;maxs[0]=0;mins[1]=1;maxs[1]=20;mins[2]=0.1f;maxs[2]=100;f="COMPRESSOR - threshold, ratio and attack (release configured in DSP)";break;
- case 4:a[0]="MODE";a[1]="AMOUNT";a[2]="TONE";ids[1]="soften";ids[2]="softTone";mins[2]=2500;maxs[2]=18000;f="SOFTEN - adjustable high-frequency smoothing and tone";break;
- case 5:a[0]="AMOUNT";a[1]="WIDTH";a[2]="RATE";ids[0]="doubler";ids[1]="doublerWidth";ids[2]="doublerRate";mins[0]=0;maxs[0]=100;mins[1]=10;maxs[1]=35;mins[2]=0.05f;maxs[2]=2.0f;f="DOUBLER - modulated stereo micro-delay width and rate";break;
+ case 3:a[0]="THRESHOLD";a[1]="RATIO";a[2]="GAIN";ids[0]="threshold";ids[1]="ratio";ids[2]="gain";mins[0]=-60;maxs[0]=0;mins[1]=1;maxs[1]=20;mins[2]=-12;maxs[2]=12;f="COMPRESSOR - threshold / ratio / output gain";break;
+ case 4:a[0]="MODE";a[1]="AMOUNT";a[2]="ANALYSIS";ids[1]="soften";f="Soften processing connected - analysis meter pending";break;
+ case 5:a[0]="MODE";a[1]="AMOUNT";a[2]="ANALYSIS";ids[1]="doubler";f="Stereo doubling connected - analysis meter pending";break;
  case 6:a[0]="TIME / SPEED";a[1]="DELAY / ECHO";a[2]="FEEDBACK";ids[0]="delayTime";ids[1]="delayMix";ids[2]="delayFeedback";mins[0]=1;maxs[0]=1000;mins[1]=0;maxs[1]=100;mins[2]=0;maxs[2]=80;f="Delay time, mix and feedback connected";break;
  default:a[0]="TIME / SIZE";a[1]="REVERB / ROOM";a[2]="ANALYSIS";ids[0]="reverbTime";ids[1]="reverbMix";mins[0]=50;maxs[0]=2000;mins[1]=0;maxs[1]=100;f="Reverb size/time and wet mix connected";break;}
  for(int i=0;i<3;++i){attachments[i].reset();labels[i].setText(a[i],juce::dontSendNotification);vals[i].setText({},juce::dontSendNotification);knobs[i].setRange(mins[i],maxs[i],0.01);knobs[i].setEnabled(ids[i][0]!='\0');knobs[i].setValue(mins[i]);if(ids[i][0]!='\0')attachments[i]=std::make_unique<Attachment>(proc.parameters,ids[i],knobs[i]);}
