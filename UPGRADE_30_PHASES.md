@@ -12,7 +12,7 @@
 5. [x] Implement a sample-wise gate envelope.
 6. [ ] Add gate gain smoothing/hysteresis and noise-tail testing.
 7. [x] Add SPOTON key control as an integer semitone key.
-8. x] Implement block autocorrelation pitch detection.
+8. [x] Implement block autocorrelation pitch detection.
 9. [x] Calculate key-relative major-scale target and correction cents.
 10. [ ] Implement audible pitch-shift/correction rendering (not yet present).
 11. [ ] Implement correction-speed smoothing and preserve vibrato.
@@ -25,7 +25,7 @@
 18. [ ] Add level compensation and transient/listening validation.
 19. [x] Implement adjustable soften cutoff.
 20. [x] Blend softened signal using amount and mix controls.
-21. x] Implement short delay-based doubling.
+21. [x] Implement short delay-based doubling.
 22. [x] Connect doubler amount, width and delay.
 23. [x] Implement delay time, wet mix and feedback.
 24. [ ] Add delay parameter smoothing, tempo-sync option and feedback safety tests.
