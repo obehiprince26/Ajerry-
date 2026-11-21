@@ -23,7 +23,8 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
         tabs[i].setColour(juce::TextButton::textColourOnId, juce::Colours::black);
         addAndMakeVisible(tabs[i]);
     }
-    changeTab(0);\n    startTimer(1000);
+    changeTab(0);
+    startTimer(1000);
 }
 
 void AjerryVST3AudioProcessorEditor::changeTab(int p) {
