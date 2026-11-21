@@ -4,20 +4,41 @@ AjerryVST3AudioProcessor::AjerryVST3AudioProcessor()
  : AudioProcessor(BusesProperties().withInput("Input",juce::AudioChannelSet::stereo(),true).withOutput("Output",juce::AudioChannelSet::stereo(),true)),parameters(*this,nullptr,"PARAMETERS",createParameterLayout()){}
 juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::createParameterLayout(){
  juce::AudioProcessorValueTreeState::ParameterLayout l;
- l.add(std::make_unique<juce::AudioParameterFloat>("gate","Gate",-60.0f,0.0f,-40.0f));
- l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));
+ // Stage 1 — Gate
+ l.add(std::make_unique<juce::AudioParameterFloat>("gate","Gate Threshold",-80.0f,0.0f,-40.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("gateRange","Gate Range",-80.0f,0.0f,-24.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("gateAttack","Gate Attack",0.1f,100.0f,5.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("gateRelease","Gate Release",5.0f,1000.0f,120.0f));
+ // Stage 2 — SPOTON; key is 0=C through 11=B. Scale default is major.
+ l.add(std::make_unique<juce::AudioParameterFloat>("tune","SPOTON Amount",0.0f,100.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SPOTON Speed",1.0f,100.0f,35.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tuneKey","SPOTON Key",0.0f,11.0f,0.0f));
+ // Stage 3 — EQ
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqGain","EQ Gain",-12.0f,12.0f,0.0f));
+ // Stage 4 — Compressor
  l.add(std::make_unique<juce::AudioParameterFloat>("threshold","Comp Threshold",-60.0f,0.0f,-18.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("ratio","Comp Ratio",1.0f,20.0f,3.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("gain","Output Gain",-12.0f,12.0f,4.0f));
- l.add(std::make_unique<juce::AudioParameterFloat>("soften","Soften",0.0f,100.0f,50.0f));
- l.add(std::make_unique<juce::AudioParameterFloat>("doubler","Doubler",0.0f,100.0f,60.0f));
+ // Stage 5 — Soften
+ l.add(std::make_unique<juce::AudioParameterFloat>("soften","Soften Amount",0.0f,100.0f,50.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("softenFreq","Soften Frequency",1500.0f,16000.0f,8500.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("softenMix","Soften Mix",0.0f,100.0f,35.0f));
+ // Stage 6 — Doubler
+ l.add(std::make_unique<juce::AudioParameterFloat>("doubler","Doubler Amount",0.0f,100.0f,60.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("doublerWidth","Doubler Width",0.0f,100.0f,60.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("doublerDelay","Doubler Delay",5.0f,40.0f,18.0f));
+ // Stage 7 — Delay
  l.add(std::make_unique<juce::AudioParameterFloat>("delayTime","Delay Time",1.0f,1000.0f,300.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("delayMix","Delay Mix",0.0f,100.0f,10.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("delayFeedback","Delay Feedback",0.0f,85.0f,20.0f));
+ // Stage 8 — Reverb
  l.add(std::make_unique<juce::AudioParameterFloat>("reverbTime","Reverb Size",50.0f,2000.0f,300.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("reverbMix","Reverb Mix",0.0f,100.0f,20.0f));
- l.add(std::make_unique<juce::AudioParameterBool>("bypass","Bypass",false)); return l;
+ l.add(std::make_unique<juce::AudioParameterFloat>("reverbWidth","Reverb Width",0.0f,100.0f,100.0f));
+ l.add(std::make_unique<juce::AudioParameterBool>("bypass","Bypass",false));
+ return l;
 }
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
  juce::dsp::ProcessSpec s{sr,(juce::uint32)block,(juce::uint32)getTotalNumOutputChannels()};
