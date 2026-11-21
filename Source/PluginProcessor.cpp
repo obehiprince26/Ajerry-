@@ -23,7 +23,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  l.add(std::make_unique<juce::AudioParameterFloat>("ratio","Comp Ratio",1.0f,20.0f,3.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("gain","Output Gain",-12.0f,12.0f,4.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("soften","Soften",0.0f,100.0f,50.0f));
+ l.add(std::make_unique<juce::AudioParameterInt>("softenMode","Soften Mode",0,2,1));
  l.add(std::make_unique<juce::AudioParameterFloat>("doubler","Doubler",0.0f,100.0f,60.0f));
+ l.add(std::make_unique<juce::AudioParameterInt>("doublerMode","Doubler Mode",0,4,0));
  l.add(std::make_unique<juce::AudioParameterFloat>("delayTime","Delay Time",1.0f,1000.0f,300.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("delayMix","Delay Mix",0.0f,100.0f,10.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("reverbTime","Reverb Size",50.0f,2000.0f,300.0f));
@@ -68,13 +70,15 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  analysisLowRms.store((float)std::sqrt(blockLow/denom));
  analysisHighRms.store((float)std::sqrt(blockHigh/denom));
  const float gate=parameters.getRawParameterValue("gate")->load(),gateRange=parameters.getRawParameterValue("gateRange")->load(),hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load();
+ const int softenMode=(int)parameters.getRawParameterValue("softenMode")->load(),doublerMode=(int)parameters.getRawParameterValue("doublerMode")->load();
  const float soften=parameters.getRawParameterValue("soften")->load()/100.0f,doubler=parameters.getRawParameterValue("doubler")->load()/100.0f;
  const float thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load();
  const float ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
  const float outputGain=parameters.getRawParameterValue("gain")->load();
  const float reverbSizeMs=parameters.getRawParameterValue("reverbTime")->load();
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);
- softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),juce::jmap(soften,20000.0f,6500.0f));
+ const float softenCeiling=softenMode==0?12000.0f:(softenMode==1?7500.0f:10000.0f);
+ softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),juce::jmap(soften,20000.0f,softenCeiling));
  for(int band=0;band<4;++band){
   const char* freqIds[]={"eqLowFreq","eqLowMidFreq","eqMidFreq","eqHighFreq"};
   const char* gainIds[]={"eqLowGain","eqLowMidGain","eqMidGain","eqHighGain"};
@@ -123,7 +127,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   float left=b.getSample(0,i),right=b.getNumChannels()>1?b.getSample(1,i):left;
   float delayedL=doublerLine.popSample(0),delayedR=b.getNumChannels()>1?doublerLine.popSample(1):delayedL;
   doublerLine.pushSample(0,left);if(b.getNumChannels()>1)doublerLine.pushSample(1,right);
-  b.setSample(0,i,left*(1.0f-doubler*0.30f)+delayedR*doubler*0.30f);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-doubler*0.30f)+delayedL*doubler*0.30f);
+  const float modeScale[]={0.20f,0.28f,0.36f,0.42f,0.50f};const float width=doubler*modeScale[juce::jlimit(0,4,doublerMode)];
+  b.setSample(0,i,left*(1.0f-width)+delayedR*width);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-width)+delayedL*width);
  }
  for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry+echo*0.22f);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
  juce::dsp::ProcessContextReplacing<float> reverbContext{juce::dsp::AudioBlock<float>(b)};
