@@ -13,6 +13,8 @@ private:
  juce::TextButton tabs[8];
  juce::Slider knobs[3];
  juce::Label labels[3], vals[3], title, footer;
+ using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+ std::array<std::unique_ptr<SliderAttachment>, 3> attachments;
  int page=0;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessorEditor)
 };
