@@ -8,7 +8,7 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
  footer.setColour(juce::Label::textColourId,gold);footer.setJustificationType(juce::Justification::centred);addAndMakeVisible(footer);changeTab(0);
 }
 void AjerryVST3AudioProcessorEditor::changeTab(int p){
- page=p;for(int i=0;i<8;++i){tabs[i].setColour(juce::TextButton::buttonColourId,juce::Colours::black);tabs[i].setColour(juce::TextButton::textColourOffId,gold);tabs[i].setColour(juce::TextButton::buttonOnColourId,gold);tabs[i].setColour(juce::TextButton::textColourOnId,juce::Colours::black);tabs[i].setToggleState(i==p,juce::dontSendNotification);}
+ page=p; for(auto& attachment : attachments) attachment.reset(); for(int i=0;i<8;++i){tabs[i].setColour(juce::TextButton::buttonColourId,juce::Colours::black);tabs[i].setColour(juce::TextButton::textColourOffId,gold);tabs[i].setColour(juce::TextButton::buttonOnColourId,gold);tabs[i].setColour(juce::TextButton::textColourOnId,juce::Colours::black);tabs[i].setToggleState(i==p,juce::dontSendNotification);}
  juce::String a[3],v[3],f;
  switch(p){
  case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="GATE";v[0]="-40 dB";v[1]="0";v[2]="OPEN / CLOSED";f="Step 1 of 8 - Attack Hold Release AUTO - Always ON";break;
@@ -20,7 +20,23 @@ void AjerryVST3AudioProcessorEditor::changeTab(int p){
  case 6:a[0]="TIME / SPEED";a[1]="DELAY / ECHO";a[2]="ANALYSIS";v[0]="300 ms";v[1]="10 percent";v[2]="Echo fading";f="AJERRY SIMPLE DELAY - Time controls speed - Delay controls echo amount";break;
  default:a[0]="TIME / SIZE";a[1]="REVERB / ROOM";a[2]="ANALYSIS";v[0]="Studio - 300 ms";v[1]="20% CLEAR VOICE";v[2]="Room tail";f="AJERRY IMPROVED REVERB - Time shows room - Voice stays clear";break;
  }
- for(int i=0;i<3;++i){labels[i].setText(a[i],juce::dontSendNotification);vals[i].setText(v[i],juce::dontSendNotification);}footer.setText(f,juce::dontSendNotification);repaint();
+ const char* mapped[8][3] = {
+  {"gate","gate","gate"},
+  {"tune","tune","tune"},
+  {"hp","lp","hp"},
+  {"threshold","ratio","gain"},
+  {"soften","soften","soften"},
+  {"doubler","doubler","doubler"},
+  {"delayTime","delayMix","delayTime"},
+  {"reverbTime","reverbMix","reverbTime"}
+ };
+ for(int i=0;i<3;++i){
+  labels[i].setText(a[i],juce::dontSendNotification);
+  vals[i].setText(v[i],juce::dontSendNotification);
+  knobs[i].setEnabled(true);
+  attachments[i]=std::make_unique<SliderAttachment>(proc.parameters,mapped[p][i],knobs[i]);
+ }
+ footer.setText(f,juce::dontSendNotification);repaint();
 }
 void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g){g.fillAll(juce::Colours::black);g.setColour(gold);g.drawRect(getLocalBounds(),2);auto area=getLocalBounds().reduced(18);area.removeFromTop(100);int w=area.getWidth()/3;for(int i=0;i<3;++i){auto box=juce::Rectangle<int>(area.getX()+i*w,area.getY(),w-10,area.getHeight()-50);g.setColour(juce::Colour(0xff242424));g.fillRoundedRectangle(box.toFloat(),8);g.setColour(gold);g.drawRoundedRectangle(box.toFloat(),8,1.5f);g.setColour(blue);g.fillRoundedRectangle(box.reduced(10).toFloat(),6);}}
 void AjerryVST3AudioProcessorEditor::resized(){auto r=getLocalBounds().reduced(18);title.setBounds(r.removeFromTop(38));r.removeFromTop(5);int tw=r.getWidth()/8;for(int i=0;i<8;++i)tabs[i].setBounds(r.getX()+i*tw,r.getY(),tw-2,36);r.removeFromTop(18);int cw=r.getWidth()/3;for(int i=0;i<3;++i){auto b=juce::Rectangle<int>(r.getX()+i*cw,r.getY(),cw-10,r.getHeight()-40);labels[i].setBounds(b.removeFromTop(32));knobs[i].setBounds(b.removeFromTop(150).reduced(28,10));vals[i].setBounds(b.removeFromTop(28));}footer.setBounds(getWidth()/2-400,getHeight()-35,800,28);}
