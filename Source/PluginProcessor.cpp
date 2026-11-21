@@ -391,8 +391,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         }
 
         const float envelopeCoefficient = detector > gateEnvelope
-            ? std::exp(-1.0f / (0.008f * sampleRate))
-            : std::exp(-1.0f / (0.090f * sampleRate));
+            ? std::exp(-1.0f / (0.006f * sampleRate))
+            : std::exp(-1.0f / (0.120f * sampleRate));
         gateEnvelope = envelopeCoefficient * gateEnvelope + (1.0f - envelopeCoefficient) * detector;
 
         if (!gateIsOpen && gateEnvelope >= gateOpenThreshold)
@@ -444,10 +444,10 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
             // Independent, gently modulated channel delays create stereo thickening
             // without reading the same delay buffer twice or cross-feeding channels.
-            const float channelOffset = (numChannels > 1 && channel == 1) ? 0.0022f : 0.0f;
-            const float modulation = 0.00045f * std::sin(doublerPhase + channel * 1.5707963f);
+            const float channelOffset = (numChannels > 1 && channel == 1) ? 0.0045f : 0.0f;
+            const float modulation = 0.00065f * std::sin(doublerPhase + channel * 1.5707963f);
             const float doublerDelaySeconds = juce::jlimit(0.012f, 0.045f,
-                                                            0.020f + channelOffset + modulation);
+                                                            0.018f + channelOffset + modulation);
             doublerLine.setDelay(doublerDelaySeconds * static_cast<float>(getSampleRate()));
             const float doubled = doublerLine.popSample(channel);
             doublerLine.pushSample(channel, dry);
