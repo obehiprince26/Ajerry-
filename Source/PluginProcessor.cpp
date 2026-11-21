@@ -49,6 +49,8 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     lpFilter.reset();
     compressor.reset();
 
+    pitchRatioSmoothed.reset(sampleRate, 0.035);
+    pitchRatioSmoothed.setCurrentAndTargetValue(1.0f);
     outputGainSmoothed.reset(sampleRate, 0.02);
     delayMixSmoothed.reset(sampleRate, 0.02);
     reverbMixSmoothed.reset(sampleRate, 0.05);
@@ -216,6 +218,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 detectedPitchHz = 0.0f;
                 pitchRatio = 1.0f;
             }
+            pitchRatioSmoothed.setTargetValue(pitchRatio);
         }
 
         const float envelopeCoefficient = detector > gateEnvelope
@@ -231,7 +234,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         gateGainSmoothed.setTargetValue(gateIsOpen ? 1.0f : 0.001f);
         const float gateGain = gateGainSmoothed.getNextValue();
         const float outputGain = outputGainSmoothed.getNextValue();
-        const float correctionRatio = pitchRatio;
+        const float correctionRatio = pitchRatioSmoothed.getNextValue();
         const float pitchRange = juce::jmax(2.0f, sampleRate * 0.030f);
         const float pitchMinDelay = sampleRate * 0.018f;
         const float phaseA = pitchShiftPhase;
