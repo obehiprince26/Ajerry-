@@ -65,6 +65,7 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     lpCutoffSmoothed.setCurrentAndTargetValue(16000.0f);
 
     gateEnvelope = 0.0f;
+    doublerPhase = 0.0f;
     gateIsOpen = false;
 
     hpFilter.coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 80.0f);
@@ -116,8 +117,6 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     const int delaySamples = juce::jlimit(1, static_cast<int>(getSampleRate()) - 1,
                                           static_cast<int>(delayMs * getSampleRate() * 0.001));
     delayLine.setDelay(static_cast<float>(delaySamples));
-    doublerLine.setDelay(static_cast<float>(juce::jlimit(1, static_cast<int>(getSampleRate() * 0.05),
-                                                        static_cast<int>(getSampleRate() * 0.023))));
 
     juce::dsp::Reverb::Parameters reverbParams;
     reverbParams.roomSize = juce::jlimit(0.05f, 1.0f,
@@ -161,20 +160,26 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         const float delayWet = delayMixSmoothed.getNextValue();
         const float doublerAmount = doublerSmoothed.getNextValue();
         const float softenAmount = softenSmoothed.getNextValue();
+        doublerPhase += 6.2831853f * 0.18f / sampleRate;
+        if (doublerPhase >= 6.2831853f) doublerPhase -= 6.2831853f;
 
         for (int channel = 0; channel < numChannels; ++channel)
         {
             const float dry = buffer.getSample(channel, sample);
             const float echo = delayLine.popSample(channel);
-            const float doubled = doublerLine.popSample(channel);
 
-            // A restrained feedback path gives the delay repeat decay instead of a single tap.
+            // Controlled feedback creates smooth, progressively quieter delay repeats.
             delayLine.pushSample(channel, dry + echo * 0.22f);
 
-            // Short delayed crossfeed adds stereo spread without changing the input balance.
-            const float opposite = numChannels > 1
-                ? doublerLine.popSample(1 - channel) : doubled;
-            doublerLine.pushSample(channel, dry + opposite * 0.06f);
+            // Independent, gently modulated channel delays create stereo thickening
+            // without reading the same delay buffer twice or cross-feeding channels.
+            const float channelOffset = (numChannels > 1 && channel == 1) ? 0.0022f : 0.0f;
+            const float modulation = 0.00045f * std::sin(doublerPhase + channel * 1.5707963f);
+            const float doublerDelaySeconds = juce::jlimit(0.012f, 0.045f,
+                                                            0.020f + channelOffset + modulation);
+            doublerLine.setDelay(doublerDelaySeconds * static_cast<float>(getSampleRate()));
+            const float doubled = doublerLine.popSample(channel);
+            doublerLine.pushSample(channel, dry);
 
             const float delayed = dry * (1.0f - delayWet) + echo * delayWet;
             const float wide = delayed * (1.0f - doublerAmount * 0.32f)
