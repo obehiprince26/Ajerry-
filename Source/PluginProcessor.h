@@ -33,6 +33,7 @@ private:
  std::array<float, 2048> pitchAnalysisBuffer{};
  int pitchAnalysisWrite=0, pitchAnalysisCount=0, pitchAnalysisCountdown=0;
  float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
+ int pitchHoldSamples=0;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchRatioSmoothed;
  bool gateIsOpen=false;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
