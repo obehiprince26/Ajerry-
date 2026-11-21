@@ -32,6 +32,23 @@ void AjerryVST3AudioProcessor::processSpotOn(juce::AudioBuffer<float>& b,float a
 
 void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&){juce::ScopedNoDenormals noDenormals;const int n=b.getNumSamples(),channels=b.getNumChannels();if(n<=0||parameters.getRawParameterValue("bypass")->load()>0.5f)return;
 const float tune=parameters.getRawParameterValue("tune")->load();
+if (spotOnListening.load(std::memory_order_relaxed)) {
+ if (spotOnResetRequested.exchange(false, std::memory_order_relaxed)) { pitchClassEnergy.fill(0.0f); listenAnalysisBlocks=0; }
+ const float detectedHz=detectPitchHz(b);
+ if (detectedHz>0.0f) {
+  const float midi=69.0f+12.0f*std::log2(detectedHz/440.0f);
+  const int pc=((int)std::lround(midi)%12+12)%12;
+  pitchClassEnergy[(size_t)pc]+=1.0f;
+  ++listenAnalysisBlocks;
+  if (listenAnalysisBlocks>=12) {
+   const float major[7]={0,2,4,5,7,9,11}; float best=-1.0e9f, total=0.0f; int bestRoot=0;
+   for(float v:pitchClassEnergy) total+=v;
+   for(int root=0;root<12;++root) { float score=0.0f; for(int pcIndex=0;pcIndex<12;++pcIndex) { bool inScale=false; for(float degree:major) if(pcIndex==((root+(int)degree)%12)) inScale=true; score+=pitchClassEnergy[(size_t)pcIndex]*(inScale?1.0f:-0.65f); } if(score>best){best=score;bestRoot=root;} }
+   spotOnSuggestedKey.store(bestRoot,std::memory_order_relaxed);
+   spotOnConfidence.store(total>0.0f?juce::jlimit(0.0f,1.0f,(best/total+0.65f)/1.65f):0.0f,std::memory_order_relaxed);
+  }
+ }
+}
 const float gateDb=parameters.getRawParameterValue("gate")->load(),hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load(),thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load(),soften=parameters.getRawParameterValue("soften")->load()/100.0f,dbl=parameters.getRawParameterValue("doubler")->load()/100.0f,ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,feedback=parameters.getRawParameterValue("delayFeedback")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
 hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),juce::jmap(soften,18000.0f,6500.0f));compressor.setThreshold(thr);compressor.setRatio(ratio);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));
 juce::dsp::Reverb::Parameters rp;rp.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f);rp.wetLevel=rev;rp.dryLevel=1.0f-rev;reverb.setParameters(rp);
