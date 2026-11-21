@@ -28,5 +28,7 @@ private:
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> doublerLine{96000};
  juce::dsp::Reverb reverb;
+ float gateEnvelope = 1.0f;
+ int gateHoldSamples = 0;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
