@@ -123,3 +123,89 @@ Footer: “AJERRY IMPROVED REVERB - TIME shows room name - REVERB keeps voice cl
 
 ## Build targets and release requirements
 Target formats: VST3 and AAX. AAX must be genuinely compiled with an authorized Avid AAX SDK and a compatible build environment; an upload-artifact step alone is not an AAX build. Do not label either format complete until compilation and artifact verification succeed.
+
+
+# User's latest detailed layout specification (2026-11-21)
+This detailed spec is the visual master reference. Preserve every detail as written; do not improvise or redesign.
+
+## GLOBAL LAYOUT — Same for all pages
+- Background: Black
+- Outer border: Thin gold line around whole plugin
+- Title on top, centered, gold: `AJERRY CHANNEL STRIP - Compact`
+- Below title: 8 tabs in one row, all same size, black with thin gold border: `1 GATE | 2 SPOTON | 3 EQ | 4 COMP | 5 SOFTEN | 6 DOUBLER | 7 DELAY | 8 REVERB`
+- Active tab: Solid gold fill, black text. Inactive: Black fill, gold text.
+- Knobs: All gold, round, with wavy / gear edge, black marker line on top.
+- Text: All gold / light yellow, centered.
+- Bottom: One line of small gold footer text.
+- Rule: Top = Title + 8 Tabs → Middle = 2 or 3 Boxes → Bottom = Meter / Footer.
+
+## 1 GATE
+- Active tab: `1 GATE` gold.
+- Two boxes side by side, equal height.
+- Left LISTEN box: Title `LISTEN`; big red circle button `LISTEN` in black text; `Listen to room noise 1 min`; `SUGGESTED THRESHOLD: ---`; `SUGGESTED RANGE: ---`; `Press LISTEN to show suggestion`; `Suggestion Only, You Set It Yourself`; bottom of same box divided into `GATE OPEN | GATE CLOSED`.
+- Right box: THRESHOLD / 0 knob turned LEFT; RANGE / 0 knob at TOP (12 o'clock); below knobs centered gold-brown BYPASS button.
+- Footer: `Step 1 of 8 - Only one opens at a time, Inbuilt: Attack Hold Release AUTO - Always ON`.
+
+## 2 SPOTON
+- Active tab `2 SPOTON` gold. Two boxes.
+- Left BEAT KEY DETECTOR: Title; red circle LISTEN; `Key: A Minor`; `Key Lock ON`; `BPM: 110`; `Confidence: 95%`; `AUTO APPLIED`; blue button `AUTO DETECT KEY - 1 MIN`; green button `LOCK THIS KEY`; bottom `DETECTED: ---`.
+- Right VOCAL AUTO-TUNE: piano keyboard at top, white keys, some keys GREEN; AMOUNT / 0 knob turned LEFT; SPEED / 0 knob at TOP (12 o'clock); dropdown `KEY: C` with down arrow; BYPASS button.
+- Footer: `AJERRY - Formant Preservation - Smooth Correction - Better Pitch Detection - Always ON`.
+
+## 3 EQ — UPDATED
+- Active tab `3 EQ` gold.
+- Sub-header under tabs: `AJERRY EQ PRO - CLEAN + SHAPE`.
+- Three top boxes:
+  - Left LISTEN: Title; big red circle LISTEN button with black text; `Listen to your vocal 1 min`; `SUGGESTED HIGH-PASS: ---`; `SUGGESTED LOW-PASS: ---`; `Press LISTEN to show suggestion`; `Suggestion Only, You Set It Yourself`; green `APPLY SUGGESTION` at bottom of same box.
+  - Middle HIGH-PASS / LOW-PASS: title; HIGH-PASS / 80Hz knob at TOP (12 o'clock); LOW-PASS / 16kHz knob at TOP; centered gold-brown BYPASS.
+  - Right ANALYSIS - EQ CURVE: blue rounded box, entire blue box is GRAPH BODY. Grid horizontal `+12 / +6 / 0 / -6 / -12`; vertical `20Hz / 100Hz / 1kHz / 10kHz / 20kHz`. Gold curve across middle. Four dots INSIDE graph: LOW cyan at left `120Hz, 0dB` (Low Shelf, bass); LOW-MID green left-middle `400Hz, 0dB` (Peak, muddy/body); MID orange middle `1000Hz, 0dB` (Peak, presence/clarity); HIGH purple right `5000Hz, 0dB` (High Shelf, air/brightness). Drag UP = boost, DOWN = cut, LEFT/RIGHT = change frequency; curve moves with dots.
+  - Labels UNDER graph, inside same ANALYSIS box, one row, centered under matching dot and matching color: LOW cyan, LOW-MID green, MID orange, HIGH purple. Rule: no band-name labels inside graph, only dots; labels only below graph.
+- Below top boxes, two stacked boxes (same arrangement as COMP):
+  1. `SUGGESTED HIGH-PASS: 80Hz / SUGGESTED LOW-PASS: 16kHz`
+  2. UPDATED AJERRY LEARNING METER: numbers `0 -3 -6 -12 -18`; bar Green/Yellow/Red; white triangle arrow pointing DOWN on top of bar, on GREEN near `0` to `-3`; below `GREEN GOOD / YELLOW CAREFUL / RED TOO MUCH`; explainer `GREEN = Gentle natural keep arrow here, YELLOW = Careful listen, RED = Too much bring dot back to 0`.
+- Footer: `AJERRY EQ PRO - HP cuts rumble, LP cuts hiss - Drag dots to shape tone - Listen 1 min - Press APPLY`.
+
+## 4 COMP
+- Active tab `4 COMP` gold.
+- Sub-header: `AJERRY COMP PRO - SERIAL INSIDE - NORMAL GAIN`.
+- Three top boxes:
+  - THRESHOLD: one gold knob at TOP (12 o'clock), value `-18`.
+  - Middle RATIO: small red LISTEN pill overlapping top edge; one gold knob at TOP; value `3`; green inset at bottom: `Stage 1 GENTLE LA-2A -> Stage 2 CATCHER 1176`; `SERIAL INSIDE - ONE COMPRESSOR DOES BOTH`.
+  - GAIN NORMAL: one gold knob at TOP; value `+4dB`; `GAIN NORMAL - YOU SET IT YOURSELF`.
+- Below, two stacked boxes:
+  1. `SUGGESTED THRESHOLD: -18 / SUGGESTED RATIO: 3`
+  2. `GAIN REDUCTION METER`: Green/Yellow/Red bar; white triangle arrow on top sitting on Yellow/Green border; below `GREEN GOOD / YELLOW CAREFUL / RED TOO MUCH`; no numbers.
+- Footer: `AJERRY COMP PRO - SERIAL INSIDE - NORMAL GAIN - Listen 1 min - Attack Auto Release Auto`.
+
+## 5 SOFTEN
+- Active tab `5 SOFTEN` gold. Three top boxes:
+  - MODE: stacked buttons `Guitar / Vocals / Mix Bus`; Vocals selected, solid blue, white text.
+  - AMOUNT: one gold knob at TOP; `12 O'CLOCK - 50%`.
+  - ANALYSIS: `ANALYSIS - HARSHNESS / ESSES`; small rounded blue box with blue waveform, tall in middle, smaller at sides.
+- Bottom LEARNING METER box: title `AJERRY LEARNING METER`; numbers `0 -3 -6 -12 -18`; Green/Yellow/Red bar; white triangle pointing DOWN near Yellow/Green border; `GREEN GOOD / YELLOW CAREFUL / RED TOO MUCH`.
+- Footer: `AJERRY LEARNING METER - PRESS LISTEN - Listen 1 min - Sing S and SH words - PRESS STOP`.
+
+## 6 DOUBLER
+- Active tab `6 DOUBLER` gold. Three top boxes, same structure as SOFTEN:
+  - MODE: 5 stacked buttons `Verse / Chorus / Rap / Trap / Hook`; Chorus selected solid blue. This box taller than SOFTEN MODE box.
+  - AMOUNT: one gold knob at TOP; `MIX 60% 12 o'clock`.
+  - ANALYSIS: `ANALYSIS - DOUBLED VOICE / STEREO`; same blue waveform box as SOFTEN.
+- Bottom meter identical to SOFTEN (same numbers, arrow, labels).
+- Footer identical to SOFTEN.
+
+## 7 DELAY
+- Active tab `7 DELAY` gold. Three equal, tall boxes; no bottom meter, no LISTEN, no BYPASS.
+- TIME / SPEED: one gold knob at TOP; `300ms - 12 o'clock`.
+- DELAY / ECHO: one gold knob at TOP; `10 percent` (write percent, not %).
+- ANALYSIS: blue waveform starts tall on left and gets smaller to right (echo fading).
+- Footer: `AJERRY SIMPLE DELAY - TIME controls speed - DELAY controls echo amount`.
+
+## 8 REVERB
+- Active tab `8 REVERB` gold. Three equal tall boxes, same layout as DELAY.
+- TIME / SIZE: one gold knob slightly RIGHT; `Studio - 300ms`.
+- REVERB / ROOM: one gold knob slightly LEFT; `20% CLEAR VOICE`.
+- ANALYSIS: blue waveform starts tall then long decaying tail to right, different from DELAY.
+- Footer: `AJERRY IMPROVED REVERB - TIME shows room name - REVERB keeps voice clear`.
+
+## Exact overall sequence
+`1 GATE → 2 SPOTON → 3 EQ → 4 COMP → 5 SOFTEN → 6 DOUBLER → 7 DELAY → 8 REVERB`.
