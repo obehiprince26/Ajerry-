@@ -234,6 +234,24 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     keyFFTData[static_cast<size_t>(n)] = keyAnalysisBuffer[static_cast<size_t>(index)] * window;
                 }
                 keyFFT.performFrequencyOnlyForwardTransform(keyFFTData.data());
+                // Convert spectral peaks into a pitch-class energy profile. Restrict
+                // the range to musical fundamentals/harmonics and discount sub-bass rumble.
+                for (auto& energy : keyChromaHistory)
+                    energy *= 0.985f;
+                const float fftRate = pitchAnalysisSampleRate;
+                for (int bin = 5; bin < 170; ++bin)
+                {
+                    const float frequency = static_cast<float>(bin) * fftRate / 2048.0f;
+                    if (frequency < 55.0f || frequency > 2000.0f)
+                        continue;
+                    const float magnitude = keyFFTData[static_cast<size_t>(bin)];
+                    if (magnitude <= 1.0e-5f)
+                        continue;
+                    const int midiNote = static_cast<int>(std::round(
+                        69.0f + 12.0f * std::log2(frequency / 440.0f)));
+                    const int pitchClass = (midiNote % 12 + 12) % 12;
+                    keyChromaHistory[static_cast<size_t>(pitchClass)] += std::sqrt(magnitude);
+                }
                 ++keyAnalysisFrames;
             }
         if (++pitchAnalysisCountdown >= 512 && pitchAnalysisCount >= 1024)
