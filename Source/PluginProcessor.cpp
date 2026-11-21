@@ -57,7 +57,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  compressor.setThreshold(juce::jlimit(-60.0f,0.0f,thr+6.0f));compressor.setRatio(juce::jlimit(1.0f,3.0f,ratio*0.67f));
  peakCatcher.setThreshold(thr);peakCatcher.setRatio(ratio);peakCatcher.setAttack(2.0f);peakCatcher.setRelease(60.0f);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));doublerLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(0.015f*getSampleRate())));
  juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jmap(juce::jlimit(50.0f,2000.0f,reverbSizeMs),50.0f,2000.0f,0.08f,0.92f); reverbParams.damping=juce::jmap(reverbParams.roomSize,0.15f,0.75f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverbParams.width=1.0f; reverbParams.freezeMode=0.0f; reverb.setParameters(reverbParams);
- for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.0f);}
+ const float gateThreshold=juce::Decibels::decibelsToGain(gate); const float attackCoeff=std::exp(-1.0f/(0.008f*getSampleRate())); const float releaseCoeff=std::exp(-1.0f/(0.120f*getSampleRate()));
+ for(int i=0;i<b.getNumSamples();++i){float detector=0.0f;for(int ch=0;ch<b.getNumChannels();++ch)detector=juce::jmax(detector,std::abs(b.getSample(ch,i))); if(detector>gateThreshold){gateHoldSamples=(int)(0.025f*getSampleRate());gateEnvelope=1.0f;}else if(gateHoldSamples>0)--gateHoldSamples;else gateEnvelope=gateEnvelope*releaseCoeff; if(detector>gateThreshold)gateEnvelope=1.0f+(gateEnvelope-1.0f)*attackCoeff; for(int ch=0;ch<b.getNumChannels();++ch)b.setSample(ch,i,b.getSample(ch,i)*gateEnvelope);}
  juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);for(auto& f:eqFilters)f.process(ctx);softenFilter.process(ctx);compressor.process(ctx);peakCatcher.process(ctx);
  for(int i=0;i<b.getNumSamples();++i){
   float left=b.getSample(0,i),right=b.getNumChannels()>1?b.getSample(1,i):left;
@@ -65,7 +66,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   doublerLine.pushSample(0,left);if(b.getNumChannels()>1)doublerLine.pushSample(1,right);
   b.setSample(0,i,left*(1.0f-doubler*0.30f)+delayedR*doubler*0.30f);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-doubler*0.30f)+delayedL*doubler*0.30f);
  }
- for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
+ for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry+echo*0.22f);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
  if(b.getNumChannels()>=2) reverb.processStereo(b.getWritePointer(0),b.getWritePointer(1),b.getNumSamples());
  else if(b.getNumChannels()==1) reverb.processMono(b.getWritePointer(0),b.getNumSamples());
  b.applyGain(juce::Decibels::decibelsToGain(outputGain));
