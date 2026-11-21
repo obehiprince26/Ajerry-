@@ -1,4 +1,4 @@
-name: Build AJERRY
+name: Build AJERRY VST3
 
 on:
   push:
@@ -11,27 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get JUCE
+      - name: Fetch JUCE 8.0.8
         shell: bash
-        run: |
-          if [ ! -f "JUCE/CMakeLists.txt" ]; then
-            git clone --depth 1 --branch 8.0.8 https://github.com/juce-framework/JUCE.git JUCE
-          fi
+        run: git clone --depth 1 --branch 8.0.8 https://github.com/juce-framework/JUCE.git JUCE
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
-        run: cmake --build build --config Release --parallel
+      - name: Build VST3 target
+        run: cmake --build build --config Release --target AJERRY_VST3 --parallel
 
       - name: Upload VST3
         uses: actions/upload-artifact@v4
         with:
           name: AJERRY-VST3
           path: build/AJERRY_artefacts/Release/VST3/
-
-      - name: Upload AAX
-        uses: actions/upload-artifact@v4
-        with:
-          name: AJERRY-AAX
-          path: build/AJERRY_artefacts/Release/AAX/
