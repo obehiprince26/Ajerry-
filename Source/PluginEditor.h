@@ -32,6 +32,8 @@ private:
     bool draggingEqDot = false;
     bool eqSuggestionReady = false;
  int eqListenSeconds = 0;
+    double eqRmsSum = 0.0, eqLowSum = 0.0, eqHighSum = 0.0;
+    int eqSamplesCollected = 0;
     int eqFilterDrag = -1;
     float suggestedHP = 80.0f, suggestedLP = 16000.0f;
     juce::Rectangle<float> eqListenBounds, eqApplyBounds, hpControlBounds, lpControlBounds;
