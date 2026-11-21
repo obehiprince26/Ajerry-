@@ -47,6 +47,6 @@ private:
     juce::Rectangle<float> reverbTimeBounds, reverbMixBounds, delayTimeBounds, delayMixBounds, compThresholdBounds, compRatioBounds, compGainBounds, softenAmountBounds, doublerAmountBounds, softenModeBounds, doublerModeBounds;
     int activeReverbKnob = -1;
     int softenMode = 1, doublerMode = 0;
-    juce::Rectangle<float> gateThresholdBounds, gateRangeBounds, gateBypassBounds;\n juce::Rectangle<float> spotAmountBounds, spotSpeedBounds, spotKeyBounds, spotLockBounds, spotBypassBounds;
+    juce::Rectangle<float> gateThresholdBounds, gateRangeBounds, gateBypassBounds;\n juce::Rectangle<float> spotAmountBounds, spotSpeedBounds, spotKeyBounds, spotLockBounds, spotBypassBounds, spotDetectKeyBounds;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessorEditor)
 };
