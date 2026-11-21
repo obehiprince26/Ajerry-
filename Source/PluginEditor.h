@@ -41,5 +41,7 @@ private:
     float eqFreq[4] {120.0f, 400.0f, 1000.0f, 5000.0f};
     float eqGain[4] {0.0f, 0.0f, 0.0f, 0.0f};
     juce::Rectangle<float> eqGraph;
+    juce::Rectangle<float> reverbTimeBounds, reverbMixBounds;
+    int activeReverbKnob = -1;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessorEditor)
 };
