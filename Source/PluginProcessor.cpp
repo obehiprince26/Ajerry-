@@ -83,6 +83,8 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     pitchHoldSamples = 0;
     stableMidiNote = candidateMidiNote = -1;
     candidateNoteFrames = 0;
+    pitchChannelEnergySmoothed.fill(0.0f);
+    pitchAnalysisChannel = 0;
     pitchConfidence = 0.0f;
     gateIsOpen = false;
 
@@ -157,11 +159,12 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     const float gateCloseThreshold = gateThreshold * 0.72f; // hysteresis prevents chatter.
     const float sampleRate = static_cast<float>(getSampleRate());
 
-    // Analyse the strongest input channel rather than averaging stereo channels;
-    // opposite-polarity stereo vocals must not cancel and appear unvoiced.
-    int pitchAnalysisChannel = 0;
+    // Track channel energy over time and switch analysis channels only when
+    // another channel is clearly stronger. This avoids block-to-block channel
+    // hopping on stereo vocals while still recovering from a silent channel.
+    int strongestChannel = pitchAnalysisChannel;
     float strongestChannelEnergy = -1.0f;
-    for (int channel = 0; channel < numChannels; ++channel)
+    for (int channel = 0; channel < juce::jmin(numChannels, 2); ++channel)
     {
         float channelEnergy = 0.0f;
         for (int sample = 0; sample < numSamples; ++sample)
@@ -169,12 +172,21 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             const float value = buffer.getSample(channel, sample);
             channelEnergy += value * value;
         }
-        if (channelEnergy > strongestChannelEnergy)
+        channelEnergy /= static_cast<float>(juce::jmax(1, numSamples));
+        auto& trackedEnergy = pitchChannelEnergySmoothed[static_cast<size_t>(channel)];
+        trackedEnergy += 0.20f * (channelEnergy - trackedEnergy);
+        if (trackedEnergy > strongestChannelEnergy)
         {
-            strongestChannelEnergy = channelEnergy;
-            pitchAnalysisChannel = channel;
+            strongestChannelEnergy = trackedEnergy;
+            strongestChannel = channel;
         }
     }
+    const float currentChannelEnergy = pitchChannelEnergySmoothed[
+        static_cast<size_t>(juce::jlimit(0, 1, pitchAnalysisChannel))];
+    if (strongestChannel != pitchAnalysisChannel
+        && (currentChannelEnergy < 1.0e-8f
+            || strongestChannelEnergy > currentChannelEnergy * 1.6f))
+        pitchAnalysisChannel = strongestChannel;
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
