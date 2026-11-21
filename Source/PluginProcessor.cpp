@@ -51,6 +51,8 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
 
     pitchRatioSmoothed.reset(sampleRate, 0.035);
     pitchRatioSmoothed.setCurrentAndTargetValue(1.0f);
+    pitchConfidenceSmoothed.reset(sampleRate, 0.018);
+    pitchConfidenceSmoothed.setCurrentAndTargetValue(0.0f);
     outputGainSmoothed.reset(sampleRate, 0.02);
     delayMixSmoothed.reset(sampleRate, 0.02);
     reverbMixSmoothed.reset(sampleRate, 0.05);
@@ -77,6 +79,7 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     pitchRatio = 1.0f;
     pitchShiftPhase = 0.0f;
     pitchHoldSamples = 0;
+    pitchConfidence = 0.0f;
     gateIsOpen = false;
 
     hpFilter.coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 80.0f);
@@ -260,6 +263,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float semitones = (std::round(midi) - midi) * spotOnAmount;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
+                pitchConfidence = juce::jlimit(0.0f, 1.0f, (0.25f - bestValue) * 5.0f);
             }
             else if (pitchHoldSamples > 0)
             {
@@ -271,8 +275,10 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             {
                 detectedPitchHz = 0.0f;
                 pitchRatio = 1.0f;
+                pitchConfidence = 0.0f;
             }
             pitchRatioSmoothed.setTargetValue(pitchRatio);
+            pitchConfidenceSmoothed.setTargetValue(pitchConfidence);
         }
 
         const float envelopeCoefficient = detector > gateEnvelope
@@ -289,6 +295,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         const float gateGain = gateGainSmoothed.getNextValue();
         const float outputGain = outputGainSmoothed.getNextValue();
         const float correctionRatio = pitchRatioSmoothed.getNextValue();
+        const float pitchWet = pitchConfidenceSmoothed.getNextValue();
         const float pitchRange = juce::jmax(2.0f, sampleRate * 0.030f);
         const float pitchMinDelay = sampleRate * 0.018f;
         const float phaseA = pitchShiftPhase;
@@ -315,7 +322,6 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             const float pitchB = pitchLine.popSample(channel, delayAtPhase(phaseB), false);
             pitchLine.pushSample(channel, dry);
             const float shifted = pitchA * weightA + pitchB * weightB;
-            const float pitchWet = (detectedPitchHz > 0.0f && spotOnAmount > 0.001f && pitchHoldSamples > 0) ? 1.0f : 0.0f;
             const float spotOnSignal = dry * (1.0f - pitchWet) + shifted * pitchWet;
             const float echo = delayLine.popSample(channel);
 
