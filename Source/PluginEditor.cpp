@@ -23,6 +23,7 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
         tabs[i].setColour(juce::TextButton::textColourOnId, juce::Colours::black);
         addAndMakeVisible(tabs[i]);
     }
+    softenMode=(int)proc.parameters.getRawParameterValue("softenMode")->load(); doublerMode=(int)proc.parameters.getRawParameterValue("doublerMode")->load();
     eqFreq[0]=proc.parameters.getRawParameterValue("eqLowFreq")->load(); eqGain[0]=proc.parameters.getRawParameterValue("eqLowGain")->load();
     eqFreq[1]=proc.parameters.getRawParameterValue("eqLowMidFreq")->load(); eqGain[1]=proc.parameters.getRawParameterValue("eqLowMidGain")->load();
     eqFreq[2]=proc.parameters.getRawParameterValue("eqMidFreq")->load(); eqGain[2]=proc.parameters.getRawParameterValue("eqMidGain")->load();
