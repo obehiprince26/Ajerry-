@@ -9,7 +9,7 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
 void AjerryVST3AudioProcessorEditor::changeTab(int p){page=p;for(int i=0;i<8;++i){tabs[i].setColour(juce::TextButton::buttonColourId,juce::Colours::black);tabs[i].setColour(juce::TextButton::textColourOffId,gold);tabs[i].setColour(juce::TextButton::buttonOnColourId,gold);tabs[i].setColour(juce::TextButton::textColourOnId,juce::Colours::black);tabs[i].setToggleState(i==p,juce::dontSendNotification);}
  juce::String a[3],f;const char* ids[3]={"","",""};float mins[3]={0,0,0},maxs[3]={100,100,100};
  switch(p){case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="GATE";ids[0]="gate";mins[0]=-60;maxs[0]=0;f="Step 1 of 8 - Attack Hold Release AUTO - Always ON";break;
- case 1:a[0]="AMOUNT";a[1]="SPEED";a[2]="KEY";ids[0]="tune";f="SPOTON - Pitch correction amount control (pitch DSP pending)";break;
+ case 1:a[0]="AMOUNT";a[1]="SPEED";a[2]="KEY";ids[0]="tune";ids[1]="speed";ids[2]="key";mins[1]=1;maxs[1]=100;mins[2]=0;maxs[2]=11;f="SPOTON - Real-time pitch correction | Major key targeting";break;
  case 2:a[0]="HIGH-PASS";a[1]="LOW-PASS";a[2]="EQ LEARNING";ids[0]="hp";ids[1]="lp";mins[0]=20;maxs[0]=500;mins[1]=2000;maxs[1]=20000;f="EQ: HP/LP connected; learning/suggestion engine pending";break;
  case 3:a[0]="THRESHOLD";a[1]="RATIO";a[2]="GAIN";ids[0]="threshold";ids[1]="ratio";ids[2]="gain";mins[0]=-60;maxs[0]=0;mins[1]=1;maxs[1]=20;mins[2]=-12;maxs[2]=12;f="COMPRESSOR - threshold / ratio / output gain";break;
  case 4:a[0]="MODE";a[1]="AMOUNT";a[2]="ANALYSIS";ids[1]="soften";f="Soften processing connected - analysis meter pending";break;
