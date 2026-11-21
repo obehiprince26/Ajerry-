@@ -25,7 +25,9 @@ private:
  juce::dsp::Compressor<float> compressor;
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> doublerLine{96000};
- juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> pitchLine{96000};
+ // Third-order Lagrange interpolation reduces fractional-delay quantisation
+ // in the dual-head vocal pitch shifter; the other effect delay lines stay linear.
+ juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> pitchLine{96000};
  juce::dsp::Reverb reverb;
  juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
  float gateEnvelope=0.0f;
