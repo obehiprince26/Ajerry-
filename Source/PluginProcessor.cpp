@@ -38,6 +38,23 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
 void AjerryVST3AudioProcessor::releaseResources(){}
 void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&){
  juce::ScopedNoDenormals noDenormals;if(parameters.getRawParameterValue("bypass")->load()>0.5f)return;
+ // Lightweight input analysis for the EQ Listen/Suggestion workflow.
+ // Metrics are measured before processing, then published for the editor.
+ double blockRms=0.0, blockLow=0.0, blockHigh=0.0;
+ const float lowAlpha=1.0f-std::exp(-2.0f*juce::MathConstants<float>::pi*120.0f/(float)getSampleRate());
+ const float highAlpha=1.0f-std::exp(-2.0f*juce::MathConstants<float>::pi*8000.0f/(float)getSampleRate());
+ for(int i=0;i<b.getNumSamples();++i){
+  float mono=0.0f; for(int ch=0;ch<b.getNumChannels();++ch) mono+=b.getSample(ch,i);
+  mono/=juce::jmax(1,b.getNumChannels());
+  analysisLowState+=lowAlpha*(mono-analysisLowState);
+  analysisHighState+=highAlpha*(mono-analysisHighState);
+  float high=mono-analysisHighState;
+  blockRms+=mono*mono; blockLow+=analysisLowState*analysisLowState; blockHigh+=high*high;
+ }
+ const double denom=juce::jmax(1,b.getNumSamples());
+ analysisRms.store((float)std::sqrt(blockRms/denom));
+ analysisLowRms.store((float)std::sqrt(blockLow/denom));
+ analysisHighRms.store((float)std::sqrt(blockHigh/denom));
  const float gate=parameters.getRawParameterValue("gate")->load(),hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load();
  const float soften=parameters.getRawParameterValue("soften")->load()/100.0f,doubler=parameters.getRawParameterValue("doubler")->load()/100.0f;
  const float thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load();
