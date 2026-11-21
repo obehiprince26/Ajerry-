@@ -12,7 +12,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  // Stage 2 — SPOTON; key is 0=C through 11=B. Scale default is major.
  l.add(std::make_unique<juce::AudioParameterFloat>("tune","SPOTON Amount",0.0f,100.0f,0.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SPOTON Speed",1.0f,100.0f,35.0f));
- l.add(std::make_unique<juce::AudioParameterFloat>("tuneKey","SPOTON Key",0.0f,11.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterInt>("tuneKey","SPOTON Key",0,11,0));
  // Stage 3 — EQ
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
@@ -83,7 +83,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  if(channels>0&&samples>=128&&tuneAmount>0.001f){
   const int lagMin=juce::jmax(2,(int)(sr/500.0f)),lagMax=juce::jmin(samples/2,(int)(sr/80.0f));float best=-1.0f;int bestLag=0;
   for(int lag=lagMin;lag<=lagMax;++lag){double corr=0,energyA=0,energyB=0;for(int i=lag;i<samples;++i){float a=b.getSample(0,i),bb=b.getSample(0,i-lag);corr+=a*bb;energyA+=a*a;energyB+=bb*bb;}float norm=(float)(corr/std::sqrt(energyA*energyB+1.0e-12));if(norm>best){best=norm;bestLag=lag;}}
-  if(bestLag>0&&best>0.35f){float hz=sr/(float)bestLag;spotonDetectedHz=hz;float midi=69.0f+12.0f*std::log2(hz/440.0f);int nearest=(int)std::round(midi);const int majorOffsets[7]={0,2,4,5,7,9,11};int key=(int)std::round(keyVal)%12;float targetMidi=(float)nearest;float bestDist=1000.0f;for(int n=nearest-12;n<=nearest+12;++n){int pc=((n-key)%12+12)%12;bool inScale=false;for(int j=0;j<7;++j)if(pc==majorOffsets[j])inScale=true;if(inScale){float d=std::abs(midi-n);if(d<bestDist){bestDist=d;targetMidi=(float)n;}}}spotonTargetHz=440.0f*std::pow(2.0f,(targetMidi-69.0f)/12.0f);spotonCorrectionCents=(targetMidi-midi)*100.0f*tuneAmount; (void)tuneSpeed;}
+  if(bestLag>0&&best>0.35f){float hz=sr/(float)bestLag;spotonDetectedHz=hz;float midi=69.0f+12.0f*std::log2(hz/440.0f);int nearest=(int)std::round(midi);const int majorOffsets[7]={0,2,4,5,7,9,11};int key=((int)std::round(keyVal)%12+12)%12;float targetMidi=(float)nearest;float bestDist=1000.0f;for(int n=nearest-12;n<=nearest+12;++n){int pc=((n-key)%12+12)%12;bool inScale=false;for(int j=0;j<7;++j)if(((pc-key+12)%12)==majorOffsets[j])inScale=true;if(inScale){float d=std::abs(midi-n);if(d<bestDist){bestDist=d;targetMidi=(float)n;}}}spotonTargetHz=440.0f*std::pow(2.0f,(targetMidi-69.0f)/12.0f);spotonCorrectionCents=(targetMidi-midi)*100.0f*tuneAmount; (void)tuneSpeed;}
  }
  // Stage 3: high/low-pass filters plus output gain controlled by EQ Gain.
  juce::dsp::ProcessContextReplacing<float> context{juce::dsp::AudioBlock<float>(b)};hpFilter.process(context);lpFilter.process(context);b.applyGain(juce::Decibels::decibelsToGain(eqGain));
