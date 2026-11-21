@@ -249,7 +249,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 bestLag = 0;
             }
 
-            if (bestLag > 0 && bestValue < 0.25f && frameRms >= 0.008f)
+            if (bestLag > 0 && bestValue < 0.25f && frameRms >= 0.003f)
             {
                 const float left = cmnd[static_cast<size_t>(juce::jmax(minLag, bestLag - 1))];
                 const float centre = cmnd[static_cast<size_t>(bestLag)];
@@ -295,7 +295,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         const float gateGain = gateGainSmoothed.getNextValue();
         const float outputGain = outputGainSmoothed.getNextValue();
         const float correctionRatio = pitchRatioSmoothed.getNextValue();
-        const float pitchWet = pitchConfidenceSmoothed.getNextValue();
+        const float pitchWet = pitchConfidenceSmoothed.getNextValue()
+            * (spotOnAmount > 0.001f ? 1.0f : 0.0f);
         const float pitchRange = juce::jmax(2.0f, sampleRate * 0.030f);
         const float pitchMinDelay = sampleRate * 0.018f;
         const float phaseA = pitchShiftPhase;
