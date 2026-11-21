@@ -172,14 +172,25 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             constexpr int windowSize = 2048;
             const int minLag = juce::jlimit(20, 80, static_cast<int>(sampleRate / 1500.0f));
             const int maxLag = juce::jlimit(minLag + 2, windowSize - 2,
-                                            static_cast<int>(sampleRate / 65.0f));
+                                            static_cast<int>(sampleRate / 55.0f));
             std::array<float, windowSize> frame{};
+            float frameMean = 0.0f;
+            for (int n = 0; n < windowSize; ++n)
+            {
+                const int index = (pitchAnalysisWrite - windowSize + n + static_cast<int>(pitchAnalysisBuffer.size()))
+                                  % static_cast<int>(pitchAnalysisBuffer.size());
+                frameMean += pitchAnalysisBuffer[static_cast<size_t>(index)];
+            }
+            frameMean /= static_cast<float>(windowSize);
+
+            // Remove DC offset before the YIN difference calculation. This helps
+            // prevent low-frequency bias from mic/interface offset.
             float frameEnergy = 0.0f;
             for (int n = 0; n < windowSize; ++n)
             {
                 const int index = (pitchAnalysisWrite - windowSize + n + static_cast<int>(pitchAnalysisBuffer.size()))
                                   % static_cast<int>(pitchAnalysisBuffer.size());
-                const float value = pitchAnalysisBuffer[static_cast<size_t>(index)];
+                const float value = pitchAnalysisBuffer[static_cast<size_t>(index)] - frameMean;
                 frame[static_cast<size_t>(n)] = value;
                 frameEnergy += value * value;
             }
@@ -215,7 +226,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
             // Prefer the first convincing YIN trough to avoid octave errors;
             // fall back to the global minimum only when it is still credible.
-            if (frameRms >= 0.008f)
+            if (frameRms >= 0.003f)
             {
                 for (int lag = minLag + 1; lag < maxLag; ++lag)
                 {
