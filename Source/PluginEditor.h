@@ -44,8 +44,9 @@ private:
     float eqFreq[4] {120.0f, 400.0f, 1000.0f, 5000.0f};
     float eqGain[4] {0.0f, 0.0f, 0.0f, 0.0f};
     juce::Rectangle<float> eqGraph;
-    juce::Rectangle<float> reverbTimeBounds, reverbMixBounds, delayTimeBounds, delayMixBounds, compThresholdBounds, compRatioBounds, compGainBounds;
+    juce::Rectangle<float> reverbTimeBounds, reverbMixBounds, delayTimeBounds, delayMixBounds, compThresholdBounds, compRatioBounds, compGainBounds, softenAmountBounds, doublerAmountBounds, softenModeBounds, doublerModeBounds;
     int activeReverbKnob = -1;
+    int softenMode = 1, doublerMode = 0;
     juce::Rectangle<float> gateThresholdBounds, gateRangeBounds, gateBypassBounds;\n juce::Rectangle<float> spotAmountBounds, spotSpeedBounds, spotKeyBounds, spotLockBounds, spotBypassBounds;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessorEditor)
 };
