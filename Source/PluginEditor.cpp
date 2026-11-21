@@ -201,7 +201,7 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
         auto mode=top.withWidth(modeW),amount=top.withX(mode.getRight()+gap).withWidth(amountW),analysis=top.withX(amount.getRight()+gap).withWidth(top.getRight()-amount.getRight()-gap);
         drawBox(g,mode,"MODE");drawBox(g,amount,"AMOUNT");drawBox(g,analysis,page==4?"ANALYSIS - HARSHNESS / ESSES":"ANALYSIS - DOUBLED VOICE / STEREO");
         const char* modes4[]={"Guitar","Vocals","Mix Bus"};const char* modes5[]={"Verse","Chorus","Rap","Trap","Hook"};int count=page==4?3:5;
-        for(int i=0;i<count;++i){auto rr=juce::Rectangle<float>(mode.getX()+12,mode.getY()+55+i*(mode.getHeight()-65)/count,mode.getWidth()-24,(mode.getHeight()-72)/count);g.setColour(i==activeMode?juce::Colour(0xff064bff):juce::Colours::black);g.fillRoundedRectangle(rr,8);g.setColour(gold);g.drawRoundedRectangle(rr,8,1.5f);centredText(g,page==4?modes4[i]:modes5[i],rr,17,i==activeMode?juce::Colours::white:paleGold);}
+        for(int i=0;i<count;++i){auto rr=juce::Rectangle<float>(mode.getX()+12,mode.getY()+55+i*(mode.getHeight()-65)/count,mode.getWidth()-24,(mode.getHeight()-72)/count);g.setColour(i==(page==4?softenMode:doublerMode)?juce::Colour(0xff064bff):juce::Colours::black);g.fillRoundedRectangle(rr,8);g.setColour(gold);g.drawRoundedRectangle(rr,8,1.5f);centredText(g,page==4?modes4[i]:modes5[i],rr,17,i==(page==4?softenMode:doublerMode)?juce::Colours::white:paleGold);}
         const auto amountCentre=juce::Point<float>(amount.getCentreX(),amount.getY()+amount.getHeight()*.43f);
         if(page==4) softenAmountBounds={amountCentre.x-48,amountCentre.y-48,96,96}; else doublerAmountBounds={amountCentre.x-48,amountCentre.y-48,96,96};
         drawKnob(g,amountCentre,48,"AMOUNT",page==4?juce::String(proc.parameters.getRawParameterValue("soften")->load(),0)+"%":juce::String(proc.parameters.getRawParameterValue("doubler")->load(),0)+"%");
@@ -238,8 +238,8 @@ void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     if(page==0 && gateBypassBounds.contains(pos)){auto* param=proc.parameters.getParameter("gateBypass");if(param)param->setValueNotifyingHost(param->convertTo0to1(proc.parameters.getRawParameterValue("gateBypass")->load()>0.5f?0.0f:1.0f));repaint();return;}
     if(page==4 && softenAmountBounds.contains(pos)){activeReverbKnob=40;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("soften")->load();return;}
     if(page==5 && doublerAmountBounds.contains(pos)){activeReverbKnob=50;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("doubler")->load();return;}
-    if(page==4 && softenModeBounds.contains(pos)){softenMode=juce::jlimit(0,2,(int)((pos.y-softenModeBounds.getY())/(softenModeBounds.getHeight()/3.0f)));repaint();return;}
-    if(page==5 && doublerModeBounds.contains(pos)){doublerMode=juce::jlimit(0,4,(int)((pos.y-doublerModeBounds.getY())/(doublerModeBounds.getHeight()/5.0f)));repaint();return}
+    if(page==4 && softenModeBounds.contains(pos)){softenMode=juce::jlimit(0,2,(int)((pos.y-softenModeBounds.getY())/(softenModeBounds.getHeight()/3.0f)));setParameter("softenMode",(float)softenMode);repaint();return;}
+    if(page==5 && doublerModeBounds.contains(pos)){doublerMode=juce::jlimit(0,4,(int)((pos.y-doublerModeBounds.getY())/(doublerModeBounds.getHeight()/5.0f)));setParameter("doublerMode",(float)doublerMode);repaint();return;
     if(page==3 && compThresholdBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("threshold")->load();return;}
     if(page==3 && compRatioBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("ratio")->load();return;}
     if(page==3 && compGainBounds.contains(pos)){activeReverbKnob=2;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("gain")->load();return;}
