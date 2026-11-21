@@ -122,8 +122,9 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     juce::dsp::Reverb::Parameters reverbParams;
     reverbParams.roomSize = juce::jlimit(0.05f, 1.0f,
         parameters.getRawParameterValue("reverbTime")->load() / 2000.0f);
-    reverbParams.wetLevel = 1.0f;
-    reverbParams.dryLevel = 0.0f;
+    const float reverbMix = reverbMixSmoothed.skip(buffer.getNumSamples());
+    reverbParams.wetLevel = reverbMix;
+    reverbParams.dryLevel = 1.0f - reverbMix;
     reverbParams.width = 1.0f;
     reverbParams.damping = 0.45f;
     reverb.setParameters(reverbParams);
@@ -161,10 +162,6 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         const float doublerAmount = doublerSmoothed.getNextValue();
         const float softenAmount = softenSmoothed.getNextValue();
 
-        float dryL = 0.0f, dryR = 0.0f;
-        if (numChannels > 0) dryL = buffer.getSample(0, sample);
-        if (numChannels > 1) dryR = buffer.getSample(1, sample);
-
         for (int channel = 0; channel < numChannels; ++channel)
         {
             const float dry = buffer.getSample(channel, sample);
@@ -188,23 +185,10 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             buffer.setSample(channel, sample, softened * gateGain * outputGain);
         }
 
-        const float reverbWet = reverbMixSmoothed.getNextValue();
-        if (numChannels > 1)
-        {
-            float wetL = buffer.getSample(0, sample);
-            float wetR = buffer.getSample(1, sample);
-            reverb.processStereo(wetL, wetR);
-            buffer.setSample(0, sample, buffer.getSample(0, sample) * (1.0f - reverbWet) + wetL * reverbWet);
-            buffer.setSample(1, sample, buffer.getSample(1, sample) * (1.0f - reverbWet) + wetR * reverbWet);
-        }
-        else if (numChannels == 1)
-        {
-            float wet = buffer.getSample(0, sample);
-            reverb.processMono(wet);
-            const float dry = buffer.getSample(0, sample);
-            buffer.setSample(0, sample, dry * (1.0f - reverbWet) + wet * reverbWet);
-        }
     }
+
+    // JUCE reverb runs in-place; its dry/wet balance is smoothed per block.
+    reverb.process(context);
 }
 
 juce::AudioProcessorEditor* AjerryVST3AudioProcessor::createEditor()
