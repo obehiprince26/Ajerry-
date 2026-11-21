@@ -185,9 +185,9 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
         float w=(content.getWidth()-2*gap)/3;auto a=content.withWidth(w),b=content.withX(a.getRight()+gap).withWidth(w),c=content.withX(b.getRight()+gap).withWidth(w);
         drawBox(g,a,page==6?"TIME / SPEED":"TIME / SIZE");drawBox(g,b,page==6?"DELAY / ECHO":"REVERB / ROOM");drawBox(g,c,"ANALYSIS");
         const juce::Point<float> timeCentre(a.getCentreX(),a.getCentreY()-15), mixCentre(b.getCentreX(),b.getCentreY()-15);
-        if(page==7){reverbTimeBounds={timeCentre.x-62,timeCentre.y-62,124,124};reverbMixBounds={mixCentre.x-62,mixCentre.y-62,124,124};}
-        drawKnob(g,timeCentre,55,page==6?"TIME / SPEED":"TIME / SIZE",page==6?"300ms - 12 o'clock":juce::String(proc.parameters.getRawParameterValue("reverbTime")->load(),0)+"ms ROOM");
-        drawKnob(g,mixCentre,55,page==6?"DELAY / ECHO":"REVERB / ROOM",page==6?"10 percent":juce::String(proc.parameters.getRawParameterValue("reverbMix")->load(),0)+"% CLEAR VOICE");
+        if(page==6){delayTimeBounds={timeCentre.x-62,timeCentre.y-62,124,124};delayMixBounds={mixCentre.x-62,mixCentre.y-62,124,124};} if(page==7){reverbTimeBounds={timeCentre.x-62,timeCentre.y-62,124,124};reverbMixBounds={mixCentre.x-62,mixCentre.y-62,124,124};}
+        drawKnob(g,timeCentre,55,page==6?"TIME / SPEED":"TIME / SIZE",page==6?juce::String(proc.parameters.getRawParameterValue("delayTime")->load(),0)+"ms - 12 o'clock":juce::String(proc.parameters.getRawParameterValue("reverbTime")->load(),0)+"ms ROOM");
+        drawKnob(g,mixCentre,55,page==6?"DELAY / ECHO":"REVERB / ROOM",page==6?juce::String(proc.parameters.getRawParameterValue("delayMix")->load(),0)+" percent":juce::String(proc.parameters.getRawParameterValue("reverbMix")->load(),0)+"% CLEAR VOICE");
         drawWaveform(g,{c.getX()+18,c.getY()+70,c.getWidth()-36,c.getHeight()*.68f},page==6?1:2);
     }
 }
@@ -201,6 +201,8 @@ void AjerryVST3AudioProcessorEditor::setParameter(const juce::String& id,float v
 }
 void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     auto pos=e.position;
+    if(page==6 && delayTimeBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("delayTime")->load();return;}
+    if(page==6 && delayMixBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("delayMix")->load();return;}
     if(page==7 && reverbTimeBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("reverbTime")->load();return;}
     if(page==7 && reverbMixBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("reverbMix")->load();return;}
     if(page==2 && eqListenBounds.contains(pos)){ listening=true; eqSuggestionReady=true; suggestedHP=80.0f; suggestedLP=16000.0f; repaint(); return; }
@@ -224,6 +226,6 @@ void AjerryVST3AudioProcessorEditor::mouseDrag(const juce::MouseEvent& e) {
         setParameter(gainIds[dragIndex],eqGain[dragIndex]);
         repaint();return;
     }
-    if(draggingKnob){if(page==7&&activeReverbKnob==0)setParameter("reverbTime",juce::jlimit(50.0f,2000.0f,knobStartValue+(knobStart.y-e.position.y)*10.0f));else if(page==7&&activeReverbKnob==1)setParameter("reverbMix",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.55f));else knobValues[0]=juce::jlimit(0.0f,1.0f,knobStartValue+(knobStart.y-e.position.y)/180.0f);repaint();}
+    if(draggingKnob){if((page==6||page==7)&&activeReverbKnob==0)setParameter(page==6?"delayTime":"reverbTime",juce::jlimit(page==6?1.0f:50.0f,page==6?1000.0f:2000.0f,knobStartValue+(knobStart.y-e.position.y)*10.0f));else if((page==6||page==7)&&activeReverbKnob==1)setParameter(page==6?"delayMix":"reverbMix",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.55f));else knobValues[0]=juce::jlimit(0.0f,1.0f,knobStartValue+(knobStart.y-e.position.y)/180.0f);repaint();}
 }
 void AjerryVST3AudioProcessorEditor::mouseUp(const juce::MouseEvent&) {eqFilterDrag=-1;activeReverbKnob=-1;draggingKnob=false;draggingEqDot=false;dragIndex=-1;}
