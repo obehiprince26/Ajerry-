@@ -118,7 +118,21 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
             centredText(g,"LOCK THIS KEY",{left.getX()+left.getWidth()*.55f,left.getBottom()-112,left.getWidth()*.42f,42},16,green);
             centredText(g,"DETECTED: ---",{left.getX()+10,left.getBottom()-54,left.getWidth()-20,30},18);
             auto keyb=juce::Rectangle<float>(right.getX()+20,right.getY()+65,right.getWidth()-40,right.getHeight()*.30f);g.setColour(juce::Colours::white);g.fillRoundedRectangle(keyb,5);for(int i=0;i<14;++i){float x=keyb.getX()+i*keyb.getWidth()/14;g.setColour((i==2||i==3||i==5||i==8||i==10)?green:juce::Colours::white);g.fillRect(x,keyb.getY()+keyb.getHeight()*.55f,keyb.getWidth()/14-1,keyb.getHeight()*.45f);}
-            drawKnob(g,{right.getX()+right.getWidth()*.30f,right.getY()+right.getHeight()*.63f},48,"AMOUNT","0");drawKnob(g,{right.getX()+right.getWidth()*.65f,right.getY()+right.getHeight()*.63f},48,"SPEED","0");centredText(g,"KEY: C  ▼",{right.getX()+right.getWidth()*.70f,right.getBottom()-75,right.getWidth()*.25f,35},18);centredText(g,"BYPASS",{right.getX()+right.getWidth()*.70f,right.getBottom()-40,right.getWidth()*.25f,30},18);
+            const auto amountC=juce::Point<float>(right.getX()+right.getWidth()*.30f,right.getY()+right.getHeight()*.63f),speedC=juce::Point<float>(right.getX()+right.getWidth()*.65f,right.getY()+right.getHeight()*.63f);
+            spotAmountBounds={amountC.x-48,amountC.y-48,96,96};spotSpeedBounds={speedC.x-48,speedC.y-48,96,96};
+            drawKnob(g,amountC,48,"AMOUNT",juce::String(proc.parameters.getRawParameterValue("tune")->load(),0)+"%");
+            drawKnob(g,speedC,48,"SPEED",juce::String(proc.parameters.getRawParameterValue("tuneSpeed")->load(),0)+"%");
+            const char* noteNames[]={"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};
+            const int note=proc.spotMidiNote.load();const float hz=proc.spotPitchHz.load();const float conf=proc.spotConfidence.load();
+            const juce::String detected=note>=0?juce::String(noteNames[note%12])+" "+juce::String(note/12-1)+" ("+juce::String(hz,1)+" Hz)":"No voiced pitch";
+            centredText(g,"DETECTED: "+detected+"\nCONFIDENCE: "+juce::String(conf*100.0f,0)+"%",{left.getX()+10,left.getBottom()-54,left.getWidth()-20,48},17,green);
+            spotKeyBounds={right.getX()+right.getWidth()*.70f,right.getBottom()-75,right.getWidth()*.25f,35};
+            spotLockBounds={right.getX()+right.getWidth()*.15f,right.getBottom()-75,right.getWidth()*.48f,35};
+            spotBypassBounds={right.getX()+right.getWidth()*.70f,right.getBottom()-40,right.getWidth()*.25f,30};
+            const bool lock=proc.parameters.getRawParameterValue("spotKeyLock")->load()>0.5f, bypassed=proc.parameters.getRawParameterValue("spotBypass")->load()>0.5f;
+            centredText(g,"KEY LOCK "+(lock?"ON":"OFF"),spotLockBounds,16,lock?green:paleGold);
+            centredText(g,"KEY: "+juce::String(noteNames[(int)proc.parameters.getRawParameterValue("spotKey")->load()])+" ▼",spotKeyBounds,16);
+            centredText(g,bypassed?"BYPASSED":"BYPASS",spotBypassBounds,16,bypassed?red:paleGold);
         }
     } else if(page==2){
         centredText(g,"AJERRY EQ PRO - CLEAN + SHAPE",{content.getX(),content.getY(),content.getWidth(),30},21);
@@ -213,6 +227,11 @@ void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     auto pos=e.position;
     if(page==0 && gateThresholdBounds.contains(pos)){activeReverbKnob=10;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("gate")->load();return;}
     if(page==0 && gateRangeBounds.contains(pos)){activeReverbKnob=11;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("gateRange")->load();return;}
+    if(page==1 && spotAmountBounds.contains(pos)){activeReverbKnob=20;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("tune")->load();return;}
+    if(page==1 && spotSpeedBounds.contains(pos)){activeReverbKnob=21;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("tuneSpeed")->load();return;}
+    if(page==1 && spotLockBounds.contains(pos)){auto* q=proc.parameters.getParameter("spotKeyLock");if(q)q->setValueNotifyingHost(q->convertTo0to1(proc.parameters.getRawParameterValue("spotKeyLock")->load()>0.5f?0.0f:1.0f));repaint();return;}
+    if(page==1 && spotBypassBounds.contains(pos)){auto* q=proc.parameters.getParameter("spotBypass");if(q)q->setValueNotifyingHost(q->convertTo0to1(proc.parameters.getRawParameterValue("spotBypass")->load()>0.5f?0.0f:1.0f));repaint();return;}
+    if(page==1 && spotKeyBounds.contains(pos)){float current=proc.parameters.getRawParameterValue("spotKey")->load();setParameter("spotKey",(current+1.0f)%12);repaint();return;}
     if(page==0 && gateBypassBounds.contains(pos)){auto* param=proc.parameters.getParameter("gateBypass");if(param)param->setValueNotifyingHost(param->convertTo0to1(proc.parameters.getRawParameterValue("gateBypass")->load()>0.5f?0.0f:1.0f));repaint();return;}
     if(page==3 && compThresholdBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("threshold")->load();return;}
     if(page==3 && compRatioBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("ratio")->load();return;}
@@ -244,7 +263,7 @@ void AjerryVST3AudioProcessorEditor::mouseDrag(const juce::MouseEvent& e) {
     }
     if(eqFilterDrag==0){float norm=juce::jlimit(0.0f,1.0f,(knobStartValue-20.0f)/480.0f+(knobStart.y-e.position.y)/300.0f);setParameter("hp",20.0f*std::pow(25.0f,norm));repaint();return;}
     if(eqFilterDrag==1){float norm=juce::jlimit(0.0f,1.0f,(knobStartValue-2000.0f)/18000.0f+(knobStart.y-e.position.y)/300.0f);setParameter("lp",2000.0f*std::pow(10.0f,norm));repaint();return;}
-    if(draggingKnob){if(page==0&&activeReverbKnob==10)setParameter("gate",juce::jlimit(-60.0f,0.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==0&&activeReverbKnob==11)setParameter("gateRange",juce::jlimit(0.0f,60.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==3){const float delta=(knobStart.y-e.position.y)*0.25f;if(activeReverbKnob==0)setParameter("threshold",juce::jlimit(-60.0f,0.0f,knobStartValue+delta));else if(activeReverbKnob==1)setParameter("ratio",juce::jlimit(1.0f,20.0f,knobStartValue+delta*.08f));else if(activeReverbKnob==2)setParameter("gain",juce::jlimit(-12.0f,12.0f,knobStartValue+delta*.08f));}else if((page==6||page==7)&&activeReverbKnob==0)setParameter(page==6?"delayTime":"reverbTime",juce::jlimit(page==6?1.0f:50.0f,page==6?1000.0f:2000.0f,knobStartValue+(knobStart.y-e.position.y)*10.0f));else if((page==6||page==7)&&activeReverbKnob==1)setParameter(page==6?"delayMix":"reverbMix",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.55f));else knobValues[0]=juce::jlimit(0.0f,1.0f,knobStartValue+(knobStart.y-e.position.y)/180.0f);repaint();}
+    if(draggingKnob){if(page==0&&activeReverbKnob==10)setParameter("gate",juce::jlimit(-60.0f,0.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==0&&activeReverbKnob==11)setParameter("gateRange",juce::jlimit(0.0f,60.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==1&&activeReverbKnob==20)setParameter("tune",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==1&&activeReverbKnob==21)setParameter("tuneSpeed",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==3){const float delta=(knobStart.y-e.position.y)*0.25f;if(activeReverbKnob==0)setParameter("threshold",juce::jlimit(-60.0f,0.0f,knobStartValue+delta));else if(activeReverbKnob==1)setParameter("ratio",juce::jlimit(1.0f,20.0f,knobStartValue+delta*.08f));else if(activeReverbKnob==2)setParameter("gain",juce::jlimit(-12.0f,12.0f,knobStartValue+delta*.08f));}else if((page==6||page==7)&&activeReverbKnob==0)setParameter(page==6?"delayTime":"reverbTime",juce::jlimit(page==6?1.0f:50.0f,page==6?1000.0f:2000.0f,knobStartValue+(knobStart.y-e.position.y)*10.0f));else if((page==6||page==7)&&activeReverbKnob==1)setParameter(page==6?"delayMix":"reverbMix",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.55f));else knobValues[0]=juce::jlimit(0.0f,1.0f,knobStartValue+(knobStart.y-e.position.y)/180.0f);repaint();}
 }
 void AjerryVST3AudioProcessorEditor::mouseUp(const juce::MouseEvent&) {eqFilterDrag=-1;activeReverbKnob=-1;draggingKnob=false;draggingEqDot=false;dragIndex=-1;}
 
