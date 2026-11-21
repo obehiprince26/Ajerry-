@@ -198,7 +198,16 @@ void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     if(page==0||page==1||page==2){listening=!listening;repaint();}
 }
 void AjerryVST3AudioProcessorEditor::mouseDrag(const juce::MouseEvent& e) {
-    if(draggingEqDot && dragIndex>=0){eqGain[dragIndex]=juce::jlimit(-12.0f,12.0f,(eqGraph.getCentreY()-e.position.y)/eqGraph.getHeight()*24.0f);float norm=juce::jlimit(0.0f,1.0f,(e.position.x-eqGraph.getX())/eqGraph.getWidth());eqFreq[dragIndex]=20.0f*std::pow(1000.0f,norm);repaint();return;}
+    if(draggingEqDot && dragIndex>=0){
+        eqGain[dragIndex]=juce::jlimit(-12.0f,12.0f,(eqGraph.getCentreY()-e.position.y)/eqGraph.getHeight()*24.0f);
+        float norm=juce::jlimit(0.0f,1.0f,(e.position.x-eqGraph.getX())/eqGraph.getWidth());
+        eqFreq[dragIndex]=20.0f*std::pow(1000.0f,norm);
+        const char* freqIds[]={"eqLowFreq","eqLowMidFreq","eqMidFreq","eqHighFreq"};
+        const char* gainIds[]={"eqLowGain","eqLowMidGain","eqMidGain","eqHighGain"};
+        setParameter(freqIds[dragIndex],eqFreq[dragIndex]);
+        setParameter(gainIds[dragIndex],eqGain[dragIndex]);
+        repaint();return;
+    }
     if(draggingKnob){knobValues[0]=juce::jlimit(0.0f,1.0f,knobStartValue+(knobStart.y-e.position.y)/180.0f);repaint();}
 }
 void AjerryVST3AudioProcessorEditor::mouseUp(const juce::MouseEvent&) {draggingKnob=false;draggingEqDot=false;dragIndex=-1;}
