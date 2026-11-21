@@ -167,7 +167,9 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
         centredText(g,"AJERRY COMP PRO - SERIAL INSIDE - NORMAL GAIN",{content.getX(),content.getY(),content.getWidth(),30},21);
         auto top=content.withY(content.getY()+36).withHeight(content.getHeight()*.55f);float w=(top.getWidth()-2*gap)/3;auto a=top.withWidth(w),b=top.withX(a.getRight()+gap).withWidth(w),c=top.withX(b.getRight()+gap).withWidth(w);
         drawBox(g,a,"THRESHOLD");drawBox(g,b,"RATIO");drawBox(g,c,"GAIN NORMAL");
-        drawKnob(g,{a.getCentreX(),a.getY()+a.getHeight()*.45f},43,"THRESHOLD","-18");drawKnob(g,{b.getCentreX(),b.getY()+b.getHeight()*.38f},43,"RATIO","3");drawKnob(g,{c.getCentreX(),c.getY()+c.getHeight()*.40f},43,"GAIN NORMAL","+4dB");
+        auto thCentre=juce::Point<float>(a.getCentreX(),a.getY()+a.getHeight()*.45f), ratioCentre=juce::Point<float>(b.getCentreX(),b.getY()+b.getHeight()*.38f), gainCentre=juce::Point<float>(c.getCentreX(),c.getY()+c.getHeight()*.40f);
+        compThresholdBounds={thCentre.x-50,thCentre.y-50,100,100};compRatioBounds={ratioCentre.x-50,ratioCentre.y-50,100,100};compGainBounds={gainCentre.x-50,gainCentre.y-50,100,100};
+        drawKnob(g,thCentre,43,"THRESHOLD",juce::String(proc.parameters.getRawParameterValue("threshold")->load(),0));drawKnob(g,ratioCentre,43,"RATIO",juce::String(proc.parameters.getRawParameterValue("ratio")->load(),1));drawKnob(g,gainCentre,43,"GAIN NORMAL",juce::String(proc.parameters.getRawParameterValue("gain")->load(),1)+"dB");
         centredText(g,"LISTEN",{b.getX()+b.getWidth()*.34f,b.getY()-8,b.getWidth()*.32f,25},14,red);
         centredText(g,"Stage 1 GENTLE LA-2A  →  Stage 2 CATCHER 1176\nSERIAL INSIDE - ONE COMPRESSOR DOES BOTH",{b.getX()+8,b.getBottom()-68,b.getWidth()-16,58},14,green);
         auto sy=top.getBottom()+10;drawBox(g,{content.getX(),sy,content.getWidth(),35},"");centredText(g,"SUGGESTED THRESHOLD: -18 / SUGGESTED RATIO: 3",{content.getX(),sy,content.getWidth(),35},16);
@@ -201,6 +203,9 @@ void AjerryVST3AudioProcessorEditor::setParameter(const juce::String& id,float v
 }
 void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     auto pos=e.position;
+    if(page==3 && compThresholdBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("threshold")->load();return;}
+    if(page==3 && compRatioBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("ratio")->load();return;}
+    if(page==3 && compGainBounds.contains(pos)){activeReverbKnob=2;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("gain")->load();return;}
     if(page==6 && delayTimeBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("delayTime")->load();return;}
     if(page==6 && delayMixBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("delayMix")->load();return;}
     if(page==7 && reverbTimeBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("reverbTime")->load();return;}
