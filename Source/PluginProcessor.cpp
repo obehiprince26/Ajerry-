@@ -5,6 +5,8 @@ AjerryVST3AudioProcessor::AjerryVST3AudioProcessor()
 juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::createParameterLayout(){
  juce::AudioProcessorValueTreeState::ParameterLayout l;
  l.add(std::make_unique<juce::AudioParameterFloat>("gate","Gate",-60.0f,0.0f,-40.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("gateRange","Gate Range",0.0f,60.0f,40.0f));
+ l.add(std::make_unique<juce::AudioParameterBool>("gateBypass","Gate Bypass",false));
  l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
