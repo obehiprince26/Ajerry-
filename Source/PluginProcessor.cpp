@@ -456,9 +456,17 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             const float wide = delayed * (1.0f - doublerAmount * 0.32f)
                              + doubled * (doublerAmount * 0.32f);
             const float drive = 1.0f + softenAmount * 0.65f;
+            // Unity-slope soft saturation: preserve low-level vocal detail while gently
+            // rounding peaks as the Soften control increases.
             const float rounded = std::tanh(wide * drive) / drive;
             const float softened = wide + (rounded - wide) * (softenAmount * 0.35f);
-            buffer.setSample(channel, sample, softened * gateGain * outputGain);
+            // Final safety stage catches extreme inter-sample sample peaks without
+            // imposing a hard clip; normal programme levels remain effectively linear.
+            const float postGain = softened * gateGain * outputGain;
+            const float safeOutput = std::abs(postGain) > 0.98f
+                ? std::copysign(0.98f + 0.02f * std::tanh((std::abs(postGain) - 0.98f) * 8.0f), postGain)
+                : postGain;
+            buffer.setSample(channel, sample, safeOutput);
         }
 
     }
