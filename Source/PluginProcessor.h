@@ -37,6 +37,8 @@ private:
  std::array<float, 2048> pitchFrameScratch{};
  std::array<float, 2048> pitchCmndScratch{};
  int pitchAnalysisWrite=0, pitchAnalysisCount=0, pitchAnalysisCountdown=0;
+ int pitchAnalysisDecimation=1, pitchDecimationCounter=0;
+ float pitchAnalysisSampleRate=48000.0f;
  float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
  int pitchHoldSamples=0;
  int stableMidiNote=-1, candidateMidiNote=-1, candidateNoteFrames=0;
