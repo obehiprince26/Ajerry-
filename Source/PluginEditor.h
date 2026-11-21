@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include <array>
 #include "PluginProcessor.h"
 class AjerryVST3AudioProcessorEditor : public juce::AudioProcessorEditor
 {
