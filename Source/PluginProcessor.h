@@ -20,6 +20,7 @@ public:
  juce::AudioProcessorValueTreeState parameters;
  static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
  float meterGR=0.0f;
+ std::atomic<float> analysisRms{0.0f}, analysisLowRms{0.0f}, analysisHighRms{0.0f};
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter,softenFilter;
  std::array<juce::dsp::IIR::Filter<float>,4> eqFilters;
@@ -30,5 +31,8 @@ private:
  juce::dsp::Reverb reverb;
  float gateEnvelope = 1.0f;
  int gateHoldSamples = 0;
+ float analysisLowState = 0.0f, analysisHighState = 0.0f;
+ double analysisSum = 0.0, analysisLowSum = 0.0, analysisHighSum = 0.0;
+ uint64_t analysisSamples = 0;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
