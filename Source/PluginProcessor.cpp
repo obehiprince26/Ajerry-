@@ -217,6 +217,25 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
         pitchAnalysisWrite = (pitchAnalysisWrite + 1) % static_cast<int>(pitchAnalysisBuffer.size());
         pitchAnalysisCount = juce::jmin(pitchAnalysisCount + 1, static_cast<int>(pitchAnalysisBuffer.size()));
+            // Feed the same stable analysis channel into a separate chroma window.
+            keyAnalysisBuffer[static_cast<size_t>(keyAnalysisWrite)] = monoForPitch;
+            keyAnalysisWrite = (keyAnalysisWrite + 1) % static_cast<int>(keyAnalysisBuffer.size());
+            keyAnalysisCount = juce::jmin(keyAnalysisCount + 1, static_cast<int>(keyAnalysisBuffer.size()));
+            ++keyAnalysisCountdown;
+            if (keyAnalysisCount >= 2048 && keyAnalysisCountdown >= 1024)
+            {
+                keyAnalysisCountdown = 0;
+                keyFFTData.fill(0.0f);
+                for (int n = 0; n < 2048; ++n)
+                {
+                    const int index = (keyAnalysisWrite + n) % 2048;
+                    const float window = 0.5f - 0.5f * std::cos(
+                        6.28318530718f * static_cast<float>(n) / 2047.0f);
+                    keyFFTData[static_cast<size_t>(n)] = keyAnalysisBuffer[static_cast<size_t>(index)] * window;
+                }
+                keyFFT.performFrequencyOnlyForwardTransform(keyFFTData.data());
+                ++keyAnalysisFrames;
+            }
         if (++pitchAnalysisCountdown >= 512 && pitchAnalysisCount >= 1024)
         {
             pitchAnalysisCountdown = 0;
