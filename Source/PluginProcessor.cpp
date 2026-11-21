@@ -41,25 +41,63 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  return l;
 }
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
- juce::dsp::ProcessSpec s{sr,(juce::uint32)block,(juce::uint32)getTotalNumOutputChannels()};
- hpFilter.prepare(s);lpFilter.prepare(s);compressor.prepare(s);delayLine.prepare(s);reverb.reset();
- delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));delayLine.reset();hpFilter.reset();lpFilter.reset();compressor.reset();
- hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,80.0f);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,16000.0f);
+ juce::dsp::ProcessSpec spec{sr,(juce::uint32)juce::jmax(1,block),(juce::uint32)juce::jmax(1,getTotalNumOutputChannels())};
+ hpFilter.prepare(spec);lpFilter.prepare(spec);softenFilter.prepare(spec);compressor.prepare(spec);delayLine.prepare(spec);doublerLine.prepare(spec);reverb.reset();
+ delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));doublerLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1);
+ delayLine.reset();doublerLine.reset();hpFilter.reset();lpFilter.reset();softenFilter.reset();compressor.reset();gateEnvelope[0]=gateEnvelope[1]=0.0f;
+ hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,80.0f);
+ lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,16000.0f);
+ softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,8500.0f);
  compressor.setThreshold(-18.0f);compressor.setRatio(3.0f);compressor.setAttack(10.0f);compressor.setRelease(100.0f);
 }
 void AjerryVST3AudioProcessor::releaseResources(){}
 void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&){
- juce::ScopedNoDenormals noDenormals;if(parameters.getRawParameterValue("bypass")->load()>0.5f)return;
- const float gate=parameters.getRawParameterValue("gate")->load(),hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load();
+ juce::ScopedNoDenormals noDenormals;
+ const int channels=b.getNumChannels(),samples=b.getNumSamples();
+ for(int c=getTotalNumInputChannels();c<channels;++c)b.clear(c,0,samples);
+ if(parameters.getRawParameterValue("bypass")->load()>0.5f)return;
+ const float gateDb=parameters.getRawParameterValue("gate")->load(),gateRangeDb=parameters.getRawParameterValue("gateRange")->load(),gateAttack=parameters.getRawParameterValue("gateAttack")->load(),gateRelease=parameters.getRawParameterValue("gateRelease")->load();
+ const float hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load(),eqGain=parameters.getRawParameterValue("eqGain")->load();
  const float thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load();
- const float ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
- hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);
- compressor.setThreshold(thr);compressor.setRatio(ratio);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));
- juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverb.setParameters(reverbParams);
- for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.15f);}
- juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);compressor.process(ctx);
- for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
- b.applyGain(juce::Decibels::decibelsToGain(gain)); reverb.process(ctx);
+ const float softenAmt=parameters.getRawParameterValue("soften")->load()/100.0f,softenFreq=parameters.getRawParameterValue("softenFreq")->load(),softenMix=parameters.getRawParameterValue("softenMix")->load()/100.0f;
+ const float doublerAmt=parameters.getRawParameterValue("doubler")->load()/100.0f,doublerWidth=parameters.getRawParameterValue("doublerWidth")->load()/100.0f,doublerMs=parameters.getRawParameterValue("doublerDelay")->load();
+ const float delayMs=parameters.getRawParameterValue("delayTime")->load(),delayMix=parameters.getRawParameterValue("delayMix")->load()/100.0f,feedback=parameters.getRawParameterValue("delayFeedback")->load()/100.0f;
+ const float reverbMs=parameters.getRawParameterValue("reverbTime")->load(),reverbMix=parameters.getRawParameterValue("reverbMix")->load()/100.0f,reverbWidth=parameters.getRawParameterValue("reverbWidth")->load()/100.0f;
+ const float sr=(float)getSampleRate();
+ hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,juce::jlimit(20.0f,500.0f,hp));
+ lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,juce::jlimit(2000.0f,20000.0f,lp));
+ softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,juce::jlimit(1500.0f,16000.0f,softenFreq));
+ compressor.setThreshold(thr);compressor.setRatio(juce::jlimit(1.0f,20.0f,ratio));
+ delayLine.setDelay(juce::jlimit(1.0f,sr-1.0f,delayMs*sr/1000.0f));
+ doublerLine.setDelay(juce::jlimit(1.0f,sr-1.0f,doublerMs*sr/1000.0f));
+ juce::dsp::Reverb::Parameters rp;rp.roomSize=juce::jlimit(0.05f,1.0f,reverbMs/2000.0f);rp.wetLevel=reverbMix;rp.dryLevel=1.0f-reverbMix;rp.width=reverbWidth*100.0f;reverb.setParameters(rp);
+ // Stage 1: sample-wise envelope gate with attack/release smoothing and adjustable attenuation.
+ const float gateLin=juce::Decibels::decibelsToGain(gateDb),rangeLin=juce::Decibels::decibelsToGain(gateRangeDb);
+ const float attackCoef=std::exp(-1.0f/(sr*juce::jmax(0.0001f,gateAttack/1000.0f))),releaseCoef=std::exp(-1.0f/(sr*juce::jmax(0.005f,gateRelease/1000.0f)));
+ for(int c=0;c<channels;++c){float env=gateEnvelope[juce::jmin(c,1)];auto* data=b.getWritePointer(c);for(int i=0;i<samples;++i){float x=std::abs(data[i]);float coef=x>env?attackCoef:releaseCoef;env=coef*env+(1.0f-coef)*x;float g=env>=gateLin?1.0f:rangeLin;data[i]*=g;}gateEnvelope[juce::jmin(c,1)]=env;}
+ // Stage 2: SPOTON analysis — autocorrelation estimates voiced pitch and chooses the nearest
+ // major-scale target. Correction telemetry is calculated; the pitch-shifting renderer is a separate
+ // unfinished component and is deliberately not falsely applied here.
+ spotonDetectedHz=spotonTargetHz=spotonCorrectionCents=0.0f;
+ const float tuneAmount=parameters.getRawParameterValue("tune")->load()/100.0f,tuneSpeed=parameters.getRawParameterValue("tuneSpeed")->load(),keyVal=parameters.getRawParameterValue("tuneKey")->load();
+ if(channels>0&&samples>=128&&tuneAmount>0.001f){
+  const int lagMin=juce::jmax(2,(int)(sr/500.0f)),lagMax=juce::jmin(samples/2,(int)(sr/80.0f));float best=-1.0f;int bestLag=0;
+  for(int lag=lagMin;lag<=lagMax;++lag){double corr=0,energyA=0,energyB=0;for(int i=lag;i<samples;++i){float a=b.getSample(0,i),bb=b.getSample(0,i-lag);corr+=a*bb;energyA+=a*a;energyB+=bb*bb;}float norm=(float)(corr/std::sqrt(energyA*energyB+1.0e-12));if(norm>best){best=norm;bestLag=lag;}}
+  if(bestLag>0&&best>0.35f){float hz=sr/(float)bestLag;spotonDetectedHz=hz;float midi=69.0f+12.0f*std::log2(hz/440.0f);int nearest=(int)std::round(midi);const int majorOffsets[7]={0,2,4,5,7,9,11};int key=(int)std::round(keyVal)%12;float targetMidi=(float)nearest;float bestDist=1000.0f;for(int n=nearest-12;n<=nearest+12;++n){int pc=((n-key)%12+12)%12;bool inScale=false;for(int j=0;j<7;++j)if(pc==majorOffsets[j])inScale=true;if(inScale){float d=std::abs(midi-n);if(d<bestDist){bestDist=d;targetMidi=(float)n;}}}spotonTargetHz=440.0f*std::pow(2.0f,(targetMidi-69.0f)/12.0f);spotonCorrectionCents=(targetMidi-midi)*100.0f*tuneAmount; (void)tuneSpeed;}
+ }
+ // Stage 3: high/low-pass filters plus output gain controlled by EQ Gain.
+ juce::dsp::ProcessContextReplacing<float> context{juce::dsp::AudioBlock<float>(b)};hpFilter.process(context);lpFilter.process(context);b.applyGain(juce::Decibels::decibelsToGain(eqGain));
+ // Stage 4: dynamics compression.
+ compressor.process(context);
+ // Stage 5: blend the low-passed signal toward the dry signal to tame harshness.
+ if(softenAmt>0.0001f&&softenMix>0.0001f){for(int c=0;c<channels;++c){auto* data=b.getWritePointer(c);for(int i=0;i<samples;++i){float dry=data[i],filtered=softenFilter.processSample(c,dry);float blend=softenAmt*softenMix;data[i]=dry+(filtered-dry)*blend;}}}
+ // Stage 6: short cross-channel delayed doubling; mono-safe and adjustable width.
+ if(doublerAmt>0.0001f){for(int i=0;i<samples;++i){float inL=b.getSample(0,i),inR=channels>1?b.getSample(1,i):inL;float dl=doublerLine.popSample(0),dr=channels>1?doublerLine.popSample(1):dl;doublerLine.pushSample(0,inL);if(channels>1)doublerLine.pushSample(1,inR);float wet=doublerAmt*0.35f;float widen=doublerWidth;float dL=channels>1?dl*(1.0f-widen)+dr*widen:dl;float dR=channels>1?dr*(1.0f-widen)+dl*widen:dr;b.setSample(0,i,inL+dL*wet);if(channels>1)b.setSample(1,i,inR+dR*wet);}}
+ // Stage 7: delay with feedback, bounded to prevent runaway.
+ if(delayMix>0.0001f){for(int c=0;c<channels;++c){auto* data=b.getWritePointer(c);for(int i=0;i<samples;++i){float dry=data[i],echo=delayLine.popSample(c);delayLine.pushSample(c,dry+echo*juce::jlimit(0.0f,0.85f,feedback));data[i]=dry*(1.0f-delayMix)+echo*delayMix;}}}
+ b.applyGain(juce::Decibels::decibelsToGain(gain));
+ // Stage 8: reverb is last in the chain; wet/dry and room width follow their controls.
+ reverb.process(context);
 }
 juce::AudioProcessorEditor* AjerryVST3AudioProcessor::createEditor(){return new AjerryVST3AudioProcessorEditor(*this);}
 void AjerryVST3AudioProcessor::getStateInformation(juce::MemoryBlock& dest){auto state=parameters.copyState();std::unique_ptr<juce::XmlElement> xml(state.createXml());copyXmlToBinary(*xml,dest);}
