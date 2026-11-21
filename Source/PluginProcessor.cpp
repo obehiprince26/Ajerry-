@@ -253,6 +253,63 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     keyChromaHistory[static_cast<size_t>(pitchClass)] += std::sqrt(magnitude);
                 }
                 ++keyAnalysisFrames;
+                if (keyAnalysisFrames >= 32)
+                {
+                    static constexpr std::array<float, 12> majorProfile {
+                        6.35f, 2.23f, 3.48f, 2.33f, 4.38f, 4.09f,
+                        2.52f, 5.19f, 2.39f, 3.66f, 2.29f, 2.88f
+                    };
+                    static constexpr std::array<float, 12> minorProfile {
+                        6.33f, 2.68f, 3.52f, 5.38f, 2.60f, 3.53f,
+                        2.54f, 4.75f, 3.98f, 2.69f, 3.34f, 3.17f
+                    };
+                    float profileMean = 0.0f;
+                    float chromaMean = 0.0f;
+                    for (int pc = 0; pc < 12; ++pc)
+                    {
+                        profileMean += majorProfile[static_cast<size_t>(pc)];
+                        chromaMean += keyChromaHistory[static_cast<size_t>(pc)];
+                    }
+                    profileMean /= 12.0f;
+                    chromaMean /= 12.0f;
+                    float bestScore = -2.0f;
+                    float secondScore = -2.0f;
+                    int bestRoot = -1;
+                    bool bestMinor = false;
+                    for (int root = 0; root < 12; ++root)
+                    {
+                        for (int mode = 0; mode < 2; ++mode)
+                        {
+                            const auto& profile = mode == 0 ? majorProfile : minorProfile;
+                            float dot = 0.0f, profileNorm = 0.0f, chromaNorm = 0.0f;
+                            for (int pc = 0; pc < 12; ++pc)
+                            {
+                                const float x = keyChromaHistory[static_cast<size_t>(pc)] - chromaMean;
+                                const float y = profile[static_cast<size_t>((pc - root + 12) % 12)] - profileMean;
+                                dot += x * y;
+                                chromaNorm += x * x;
+                                profileNorm += y * y;
+                            }
+                            const float score = dot / std::sqrt(chromaNorm * profileNorm + 1.0e-12f);
+                            if (score > bestScore)
+                            {
+                                secondScore = bestScore;
+                                bestScore = score;
+                                bestRoot = root;
+                                bestMinor = mode == 1;
+                            }
+                            else if (score > secondScore)
+                                secondScore = score;
+                        }
+                    }
+                    if (bestRoot >= 0)
+                    {
+                        detectedKeyRoot = bestRoot;
+                        detectedKeyMinor = bestMinor;
+                        detectedKeyConfidence = juce::jlimit(0.0f, 1.0f,
+                            (bestScore - secondScore) * 5.0f);
+                    }
+                }
             }
         if (++pitchAnalysisCountdown >= 512 && pitchAnalysisCount >= 1024)
         {
