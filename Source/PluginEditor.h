@@ -30,6 +30,10 @@ private:
     bool lockedKey = true;
     bool draggingKnob = false;
     bool draggingEqDot = false;
+    bool eqSuggestionReady = false;
+    int eqFilterDrag = -1;
+    float suggestedHP = 80.0f, suggestedLP = 16000.0f;
+    juce::Rectangle<float> eqListenBounds, eqApplyBounds, hpControlBounds, lpControlBounds;
     int dragIndex = -1;
     juce::Point<float> knobStart;
     float knobStartValue = 0.0f;
