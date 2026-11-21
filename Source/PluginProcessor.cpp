@@ -36,12 +36,15 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     compressor.prepare(spec);
     delayLine.prepare(spec);
     doublerLine.prepare(spec);
+    pitchLine.prepare(spec);
     reverb.reset();
 
     delayLine.setMaximumDelayInSamples(juce::jmax(1, static_cast<int>(sampleRate) - 1));
     doublerLine.setMaximumDelayInSamples(juce::jmax(1, static_cast<int>(sampleRate * 0.05)));
+    pitchLine.setMaximumDelayInSamples(juce::jmax(2, static_cast<int>(sampleRate * 0.065)));
     delayLine.reset();
     doublerLine.reset();
+    pitchLine.reset();
     hpFilter.reset();
     lpFilter.reset();
     compressor.reset();
@@ -66,6 +69,11 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
 
     gateEnvelope = 0.0f;
     doublerPhase = 0.0f;
+    pitchAnalysisBuffer.fill(0.0f);
+    pitchAnalysisWrite = pitchAnalysisCount = pitchAnalysisCountdown = 0;
+    detectedPitchHz = 0.0f;
+    pitchRatio = 1.0f;
+    pitchShiftPhase = 0.0f;
     gateIsOpen = false;
 
     hpFilter.coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 80.0f);
