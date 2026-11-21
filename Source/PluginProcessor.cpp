@@ -304,7 +304,12 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                         candidateNoteFrames = 1;
                     }
 
-                    if (candidateNoteFrames >= 2)
+                    // Require extra evidence for large note jumps (often octave
+                    // errors at consonant boundaries); ordinary melodic steps remain
+                    // responsive. This is analysis-only and adds no audio-thread waits.
+                    const int noteJump = std::abs(measuredNote - stableMidiNote);
+                    const int requiredFrames = noteJump >= 7 ? 3 : 2;
+                    if (candidateNoteFrames >= requiredFrames)
                     {
                         stableMidiNote = candidateMidiNote;
                         candidateMidiNote = -1;
@@ -312,7 +317,11 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     }
                 }
 
-                const float semitones = (static_cast<float>(stableMidiNote) - midi) * spotOnAmount;
+                float semitones = (static_cast<float>(stableMidiNote) - midi) * spotOnAmount;
+                // A small cents deadband prevents the shifter chasing tiny detector
+                // fluctuations around the target note and reduces modulation artifacts.
+                if (std::abs(semitones) < 0.04f)
+                    semitones = 0.0f;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
                 pitchConfidence = juce::jlimit(0.0f, 1.0f, (0.25f - bestValue) * 5.0f);
