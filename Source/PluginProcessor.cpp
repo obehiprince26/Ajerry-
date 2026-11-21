@@ -460,7 +460,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             // rounding peaks as the Soften control increases.
             const float rounded = std::tanh(wide * drive) / drive;
             const float softened = wide + (rounded - wide) * (softenAmount * 0.35f);
-            // Final safety stage catches extreme inter-sample sample peaks without
+            // Final safety stage catches extreme sample peaks without
             // imposing a hard clip; normal programme levels remain effectively linear.
             const float postGain = softened * gateGain * outputGain;
             const float safeOutput = std::abs(postGain) > 0.98f
