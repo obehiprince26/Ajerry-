@@ -253,7 +253,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 for (int lag = minLag + 1; lag < maxLag; ++lag)
                 {
                     const float value = cmnd[static_cast<size_t>(lag)];
-                    if (value < 0.15f
+                    if (value < 0.14f
                         && value <= cmnd[static_cast<size_t>(lag - 1)]
                         && value <= cmnd[static_cast<size_t>(lag + 1)])
                     {
@@ -268,7 +268,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 bestLag = 0;
             }
 
-            if (bestLag > 0 && bestValue < 0.25f && frameRms >= 0.003f)
+            if (bestLag > 0 && bestValue < 0.20f && frameRms >= 0.003f)
             {
                 const float left = cmnd[static_cast<size_t>(juce::jmax(minLag, bestLag - 1))];
                 const float centre = cmnd[static_cast<size_t>(bestLag)];
@@ -308,7 +308,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     // errors at consonant boundaries); ordinary melodic steps remain
                     // responsive. This is analysis-only and adds no audio-thread waits.
                     const int noteJump = std::abs(measuredNote - stableMidiNote);
-                    const int requiredFrames = noteJump >= 7 ? 3 : 2;
+                    const int requiredFrames = noteJump >= 7 ? 4 : 2;
                     if (candidateNoteFrames >= requiredFrames)
                     {
                         stableMidiNote = candidateMidiNote;
@@ -324,7 +324,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     semitones = 0.0f;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
-                pitchConfidence = juce::jlimit(0.0f, 1.0f, (0.25f - bestValue) * 5.0f);
+                pitchConfidence = juce::jlimit(0.0f, 1.0f, (0.20f - bestValue) * 6.25f);
             }
             else if (pitchHoldSamples > 0)
             {
