@@ -35,6 +35,8 @@ private:
  float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
  int pitchHoldSamples=0;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchRatioSmoothed;
+ juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchConfidenceSmoothed;
+ float pitchConfidence=0.0f;
  bool gateIsOpen=false;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
