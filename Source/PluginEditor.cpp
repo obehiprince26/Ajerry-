@@ -126,9 +126,34 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
         for(int i=0;i<5;++i){float x=eqGraph.getX()+i*eqGraph.getWidth()/4;g.setColour(juce::Colour(0xff246aa2));g.drawLine(x,eqGraph.getY(),x,eqGraph.getBottom(),1);}
         auto freqX=[&](float f){return eqGraph.getX()+eqGraph.getWidth()*(std::log10(f/20.0f)/3.0f);};
         auto gainY=[&](float v){return eqGraph.getCentreY()-v/24.0f*eqGraph.getHeight();};
-        juce::Path curve;for(int i=0;i<100;++i){float f=20.0f*std::pow(1000.0f,i/99.0f);float x=freqX(f);float y=gainY(0);if(i==0)curve.startNewSubPath(x,y);else curve.lineTo(x,y);}g.setColour(paleGold);g.strokePath(curve,juce::PathStrokeType(3));
-        const juce::Colour bandC[]={cyan,green,juce::Colour(0xffff8b16),juce::Colour(0xffd34be8)};for(int i=0;i<4;++i){float x=freqX(eqFreq[i]),y=gainY(eqGain[i]);g.setColour(bandC[i]);g.fillEllipse(x-8,y-8,16,16);}
-        const char* bandN[]={"LOW","LOW-MID","MID","HIGH"};for(int i=0;i<4;++i)centredText(g,bandN[i],{analysis.getX()+analysis.getWidth()*i/4,eqGraph.getBottom()+4,analysis.getWidth()/4,23},13,bandC[i]);
+        // Draw the combined four-band EQ response so the gold curve follows the draggable dots.
+        juce::Path curve;
+        for(int i=0;i<160;++i){
+            const float norm=i/159.0f;
+            const float f=20.0f*std::pow(1000.0f,norm);
+            float response=0.0f;
+            for(int band=0;band<4;++band){
+                const float octaves=std::log2(f/eqFreq[band]);
+                const float width=band==0||band==3?1.25f:0.85f;
+                response+=eqGain[band]*std::exp(-0.5f*octaves*octaves/(width*width));
+            }
+            const float x=freqX(f), y=gainY(juce::jlimit(-12.0f,12.0f,response));
+            if(i==0) curve.startNewSubPath(x,y); else curve.lineTo(x,y);
+        }
+        g.setColour(paleGold);g.strokePath(curve,juce::PathStrokeType(3));
+        const juce::Colour bandC[]={cyan,green,juce::Colour(0xffff8b16),juce::Colour(0xffd34be8)};
+        for(int i=0;i<4;++i){
+            const float x=freqX(eqFreq[i]),y=gainY(eqGain[i]);
+            g.setColour(bandC[i]);g.fillEllipse(x-8,y-8,16,16);
+        }
+        const char* freqLabels[]={"20Hz","100Hz","1kHz","10kHz","20kHz"};
+        for(int i=0;i<5;++i){
+            const float x=eqGraph.getX()+i*eqGraph.getWidth()/4.0f;
+            centredText(g,freqLabels[i],{x-30,eqGraph.getBottom()-1,60,18},10,paleGold,false);
+        }
+        const char* bandN[]={"LOW","LOW-MID","MID","HIGH"};
+        for(int i=0;i<4;++i)
+            centredText(g,bandN[i],{analysis.getX()+analysis.getWidth()*i/4,eqGraph.getBottom()+17,analysis.getWidth()/4,23},13,bandC[i]);
         auto suggestY=row.getBottom()+10;drawBox(g,{content.getX(),suggestY,content.getWidth(),34},"");centredText(g,"SUGGESTED HIGH-PASS: 80Hz / SUGGESTED LOW-PASS: 16kHz",{content.getX()+5,suggestY,content.getWidth()-10,34},16);
         auto meterY=suggestY+43;drawBox(g,{content.getX(),meterY,content.getWidth(),content.getBottom()-meterY},"AJERRY LEARNING METER");drawMeter(g,{content.getX()+10,meterY+30,content.getWidth()-20,content.getBottom()-meterY-35},true);
     } else if(page==3){
