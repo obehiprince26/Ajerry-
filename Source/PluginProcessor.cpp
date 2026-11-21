@@ -43,7 +43,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
  juce::dsp::ProcessSpec spec{sr,(juce::uint32)juce::jmax(1,block),(juce::uint32)juce::jmax(1,getTotalNumOutputChannels())};
  hpFilter.prepare(spec);lpFilter.prepare(spec);softenFilter.prepare(spec);compressor.prepare(spec);delayLine.prepare(spec);doublerLine.prepare(spec);reverb.reset();
- delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));doublerLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1);
+ delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));doublerLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));
  delayLine.reset();doublerLine.reset();hpFilter.reset();lpFilter.reset();softenFilter.reset();compressor.reset();gateEnvelope[0]=gateEnvelope[1]=0.0f;
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,80.0f);
  lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,16000.0f);
