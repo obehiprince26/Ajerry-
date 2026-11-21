@@ -118,9 +118,16 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
         float w=row.getWidth()*.26f;auto listen=row.withWidth(w);auto filters=row.withX(listen.getRight()+gap).withWidth(w);auto analysis=row.withX(filters.getRight()+gap).withWidth(row.getRight()-filters.getRight()-gap);
         drawBox(g,listen,"LISTEN");drawBox(g,filters,"HIGH-PASS / LOW-PASS");drawBox(g,analysis,"ANALYSIS - EQ CURVE");
         auto c=juce::Point<float>(listen.getCentreX(),listen.getY()+listen.getHeight()*.28f);g.setColour(red);g.fillEllipse(c.x-43,c.y-43,86,86);centredText(g,"LISTEN",{c.x-40,c.y-20,80,40},20,juce::Colours::black);
-        eqListenBounds={c.x-48,c.y-48,96,96};\n        const auto hpNow=proc.parameters.getRawParameterValue("hp")->load();\n        const auto lpNow=proc.parameters.getRawParameterValue("lp")->load();\n        centredText(g,juce::String("Listen to your vocal 1 min\\nSUGGESTED HIGH-PASS: ")+(eqSuggestionReady?juce::String(suggestedHP,0)+"Hz":"---")+"\\nSUGGESTED LOW-PASS: "+(eqSuggestionReady?juce::String(suggestedLP/1000.0f,1)+"kHz":"---")+"\\n"+(eqSuggestionReady?"Suggestion Only, You Set It Yourself":"Press LISTEN to show suggestion"),{listen.getX()+8,c.y+47,listen.getWidth()-16,listen.getHeight()*.48f},15);
-        eqApplyBounds={listen.getX()+12,listen.getBottom()-45,listen.getWidth()-24,32};\n        centredText(g,"APPLY SUGGESTION",eqApplyBounds,17,eqSuggestionReady?green:juce::Colours::grey);
-        const juce::Point<float> hpCentre{filters.getX()+filters.getWidth()*.28f,filters.getY()+filters.getHeight()*.43f};\n        const juce::Point<float> lpCentre{filters.getX()+filters.getWidth()*.72f,filters.getY()+filters.getHeight()*.43f};\n        hpControlBounds={hpCentre.x-48,hpCentre.y-48,96,96}; lpControlBounds={lpCentre.x-48,lpCentre.y-48,96,96};\n        drawKnob(g,hpCentre,36,"HIGH-PASS",juce::String(hpNow,0)+"Hz");drawKnob(g,lpCentre,36,"LOW-PASS",juce::String(lpNow/1000.0f,1)+"kHz");centredText(g,"BYPASS",{filters.getX()+20,filters.getBottom()-45,filters.getWidth()-40,30},17);
+        eqListenBounds={c.x-48,c.y-48,96,96};
+        const auto hpNow=proc.parameters.getRawParameterValue("hp")->load();
+        const auto lpNow=proc.parameters.getRawParameterValue("lp")->load();
+        centredText(g,juce::String("Listen to your vocal 1 min\\nSUGGESTED HIGH-PASS: ")+(eqSuggestionReady?juce::String(suggestedHP,0)+"Hz":"---")+"\\nSUGGESTED LOW-PASS: "+(eqSuggestionReady?juce::String(suggestedLP/1000.0f,1)+"kHz":"---")+"\\n"+(eqSuggestionReady?"Suggestion Only, You Set It Yourself":"Press LISTEN to show suggestion"),{listen.getX()+8,c.y+47,listen.getWidth()-16,listen.getHeight()*.48f},15);
+        eqApplyBounds={listen.getX()+12,listen.getBottom()-45,listen.getWidth()-24,32};
+        centredText(g,"APPLY SUGGESTION",eqApplyBounds,17,eqSuggestionReady?green:juce::Colours::grey);
+        const juce::Point<float> hpCentre{filters.getX()+filters.getWidth()*.28f,filters.getY()+filters.getHeight()*.43f};
+        const juce::Point<float> lpCentre{filters.getX()+filters.getWidth()*.72f,filters.getY()+filters.getHeight()*.43f};
+        hpControlBounds={hpCentre.x-48,hpCentre.y-48,96,96}; lpControlBounds={lpCentre.x-48,lpCentre.y-48,96,96};
+        drawKnob(g,hpCentre,36,"HIGH-PASS",juce::String(hpNow,0)+"Hz");drawKnob(g,lpCentre,36,"LOW-PASS",juce::String(lpNow/1000.0f,1)+"kHz");centredText(g,"BYPASS",{filters.getX()+20,filters.getBottom()-45,filters.getWidth()-40,30},17);
         eqGraph={analysis.getX()+14,analysis.getY()+55,analysis.getWidth()-28,analysis.getHeight()*.70f};g.setColour(blue);g.fillRoundedRectangle(eqGraph,8);g.setColour(brightBlue);g.drawRoundedRectangle(eqGraph,8,1.5f);
         for(int i=0;i<5;++i){float y=eqGraph.getY()+i*eqGraph.getHeight()/4;g.setColour(juce::Colour(0xff246aa2));g.drawLine(eqGraph.getX(),y,eqGraph.getRight(),y,1);centredText(g,juce::String(12-i*6),{eqGraph.getX()-32,y-10,28,20},11);}
         for(int i=0;i<5;++i){float x=eqGraph.getX()+i*eqGraph.getWidth()/4;g.setColour(juce::Colour(0xff246aa2));g.drawLine(x,eqGraph.getY(),x,eqGraph.getBottom(),1);}
@@ -192,8 +199,13 @@ void AjerryVST3AudioProcessorEditor::setParameter(const juce::String& id,float v
 }
 void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     auto pos=e.position;
-    if(page==2 && eqListenBounds.contains(pos)){ listening=true; eqSuggestionReady=true; suggestedHP=80.0f; suggestedLP=16000.0f; repaint(); return; }\n    if(page==2 && eqApplyBounds.contains(pos) && eqSuggestionReady){ setParameter("hp",suggestedHP); setParameter("lp",suggestedLP); repaint(); return; }\n    if(page==2 && hpControlBounds.contains(pos)){eqFilterDrag=0;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("hp")->load();return;}\n    if(page==2 && lpControlBounds.contains(pos)){eqFilterDrag=1;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("lp")->load();return;}\n    if(page==2 && eqGraph.contains(pos)){float best=1.0e9f;for(int i=0;i<4;++i){float x=eqGraph.getX()+eqGraph.getWidth()*(std::log10(eqFreq[i]/20.0f)/3.0f);float y=eqGraph.getCentreY()-eqGain[i]/24.0f*eqGraph.getHeight();float d=pos.getDistanceFrom({x,y});if(d<best){best=d;dragIndex=i;}}if(best<30){draggingEqDot=true;return;}}
-    if(page==2) return;\n    draggingKnob=true;knobStart=pos;knobStartValue=knobValues[0];
+    if(page==2 && eqListenBounds.contains(pos)){ listening=true; eqSuggestionReady=true; suggestedHP=80.0f; suggestedLP=16000.0f; repaint(); return; }
+    if(page==2 && eqApplyBounds.contains(pos) && eqSuggestionReady){ setParameter("hp",suggestedHP); setParameter("lp",suggestedLP); repaint(); return; }
+    if(page==2 && hpControlBounds.contains(pos)){eqFilterDrag=0;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("hp")->load();return;}
+    if(page==2 && lpControlBounds.contains(pos)){eqFilterDrag=1;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("lp")->load();return;}
+    if(page==2 && eqGraph.contains(pos)){float best=1.0e9f;for(int i=0;i<4;++i){float x=eqGraph.getX()+eqGraph.getWidth()*(std::log10(eqFreq[i]/20.0f)/3.0f);float y=eqGraph.getCentreY()-eqGain[i]/24.0f*eqGraph.getHeight();float d=pos.getDistanceFrom({x,y});if(d<best){best=d;dragIndex=i;}}if(best<30){draggingEqDot=true;return;}}
+    if(page==2) return;
+    draggingKnob=true;knobStart=pos;knobStartValue=knobValues[0];
     if(page==4||page==5){float y=pos.y;activeMode=juce::jlimit(0,page==4?2:4,(int)((y-180)/100));repaint();}
     if(page==0||page==1||page==2){listening=!listening;repaint();}
 }
