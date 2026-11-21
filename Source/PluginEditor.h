@@ -2,7 +2,7 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
-class AjerryVST3AudioProcessorEditor : public juce::AudioProcessorEditor
+class AjerryVST3AudioProcessorEditor : public juce::AudioProcessorEditor, public juce::Timer
 {
 public:
     explicit AjerryVST3AudioProcessorEditor(AjerryVST3AudioProcessor&);
@@ -11,7 +11,7 @@ public:
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseUp(const juce::MouseEvent&) override;
-    void timerCallback();
+    void timerCallback() override;
 
 private:
     void changeTab(int);
