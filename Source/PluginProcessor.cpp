@@ -57,7 +57,8 @@ void AjerryVST3AudioProcessor::analyseKeyInput(const juce::AudioBuffer<float>& b
   }
  }
 }
-\nvoid AjerryVST3AudioProcessor::processSpotOn(juce::AudioBuffer<float>& b,float amount)
+
+void AjerryVST3AudioProcessor::processSpotOn(juce::AudioBuffer<float>& b,float amount)
 {
  if(amount<0.001f||pitchBufferL.empty()) return;
  float hz=detectPitchHz(b);
@@ -74,7 +75,8 @@ void AjerryVST3AudioProcessor::analyseKeyInput(const juce::AudioBuffer<float>& b
 }
 
 void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&){juce::ScopedNoDenormals noDenormals;const int n=b.getNumSamples(),channels=b.getNumChannels();if(n<=0)return; analyseKeyInput(b); if(parameters.getRawParameterValue("bypass")->load()>0.5f)return;
-const float tune=parameters.getRawParameterValue("tune")->load();\nconst float gateDb=parameters.getRawParameterValue("gate")->load(),hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load(),thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load(),soften=parameters.getRawParameterValue("soften")->load()/100.0f,dbl=parameters.getRawParameterValue("doubler")->load()/100.0f,ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,feedback=parameters.getRawParameterValue("delayFeedback")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
+const float tune=parameters.getRawParameterValue("tune")->load();
+const float gateDb=parameters.getRawParameterValue("gate")->load(),hp=parameters.getRawParameterValue("hp")->load(),lp=parameters.getRawParameterValue("lp")->load(),thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load(),soften=parameters.getRawParameterValue("soften")->load()/100.0f,dbl=parameters.getRawParameterValue("doubler")->load()/100.0f,ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,feedback=parameters.getRawParameterValue("delayFeedback")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
 hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),juce::jmap(soften,18000.0f,6500.0f));compressor.setThreshold(thr);compressor.setRatio(ratio);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));
 juce::dsp::Reverb::Parameters rp;rp.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f);rp.wetLevel=rev;rp.dryLevel=1.0f-rev;reverb.setParameters(rp);
 const float gateTarget=juce::Decibels::decibelsToGain(gateDb);for(int i=0;i<n;++i){float peak=0;for(int c=0;c<channels;++c)peak=juce::jmax(peak,std::abs(b.getSample(c,i)));float target=peak<gateTarget?0.15f:1.0f;gateGain+=(target-gateGain)*(target<gateGain?0.08f:0.003f);for(int c=0;c<channels;++c)b.setSample(c,i,b.getSample(c,i)*gateGain);}
