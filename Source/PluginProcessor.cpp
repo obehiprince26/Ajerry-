@@ -328,15 +328,19 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             }
             else if (pitchHoldSamples > 0)
             {
-                // Brief consonants and breath gaps should not pull the correction
-                // back to unison between voiced frames.
+                // Hold the last stable target briefly through consonants, while
+                // fading confidence on each missed frame. This avoids the abrupt
+                // full-wet-to-dry transition that can sound like a pitch-shift glitch.
                 pitchHoldSamples = juce::jmax(0, pitchHoldSamples - 1024);
+                pitchConfidence *= 0.72f;
             }
             else
             {
                 detectedPitchHz = 0.0f;
                 pitchRatio = 1.0f;
                 pitchConfidence = 0.0f;
+                candidateMidiNote = -1;
+                candidateNoteFrames = 0;
             }
             pitchRatioSmoothed.setTargetValue(pitchRatio);
             pitchConfidenceSmoothed.setTargetValue(pitchConfidence);
