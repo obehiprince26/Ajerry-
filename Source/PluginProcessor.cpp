@@ -166,13 +166,13 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
         pitchAnalysisWrite = (pitchAnalysisWrite + 1) % static_cast<int>(pitchAnalysisBuffer.size());
         pitchAnalysisCount = juce::jmin(pitchAnalysisCount + 1, static_cast<int>(pitchAnalysisBuffer.size()));
-        if (++pitchAnalysisCountdown >= 1024 && pitchAnalysisCount >= 1024)
+        if (++pitchAnalysisCountdown >= 1024 && pitchAnalysisCount >= 2048)
         {
             pitchAnalysisCountdown = 0;
-            constexpr int windowSize = 1024;
+            constexpr int windowSize = 2048;
             const int minLag = juce::jlimit(20, 80, static_cast<int>(sampleRate / 1500.0f));
             const int maxLag = juce::jlimit(minLag + 2, windowSize - 2,
-                                            static_cast<int>(sampleRate / 75.0f));
+                                            static_cast<int>(sampleRate / 65.0f));
             std::array<float, windowSize> frame{};
             float frameEnergy = 0.0f;
             for (int n = 0; n < windowSize; ++n)
@@ -254,7 +254,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             {
                 // Brief consonants and breath gaps should not pull the correction
                 // back to unison between voiced frames.
-                pitchHoldSamples = juce::jmax(0, pitchHoldSamples - windowSize);
+                pitchHoldSamples = juce::jmax(0, pitchHoldSamples - 1024);
             }
             else
             {
