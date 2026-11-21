@@ -54,6 +54,7 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     pitchConfidenceSmoothed.reset(sampleRate, 0.018);
     pitchConfidenceSmoothed.setCurrentAndTargetValue(0.0f);
     outputGainSmoothed.reset(sampleRate, 0.02);
+    delayTimeSmoothed.reset(sampleRate, 0.05);
     delayMixSmoothed.reset(sampleRate, 0.02);
     reverbMixSmoothed.reset(sampleRate, 0.05);
     softenSmoothed.reset(sampleRate, 0.02);
@@ -63,6 +64,7 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     lpCutoffSmoothed.reset(sampleRate, 0.04);
 
     outputGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(4.0f));
+    delayTimeSmoothed.setCurrentAndTargetValue(300.0f);
     delayMixSmoothed.setCurrentAndTargetValue(0.10f);
     reverbMixSmoothed.setCurrentAndTargetValue(0.20f);
     softenSmoothed.setCurrentAndTargetValue(0.50f);
@@ -141,13 +143,12 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     compressor.setAttack(juce::jmap(ratio, 1.0f, 20.0f, 18.0f, 5.0f));
     compressor.setRelease(juce::jmap(ratio, 1.0f, 20.0f, 150.0f, 75.0f));
 
-    const int delaySamples = juce::jlimit(1, static_cast<int>(getSampleRate()) - 1,
-                                          static_cast<int>(delayMs * getSampleRate() * 0.001));
-    delayLine.setDelay(static_cast<float>(delaySamples));
+    delayTimeSmoothed.setTargetValue(delayMs);
 
     juce::dsp::Reverb::Parameters reverbParams;
-    reverbParams.roomSize = juce::jlimit(0.05f, 1.0f,
-        parameters.getRawParameterValue("reverbTime")->load() / 2000.0f);
+    const float reverbTimeNorm = juce::jlimit(0.0f, 1.0f,
+        (parameters.getRawParameterValue("reverbTime")->load() - 50.0f) / 1950.0f);
+    reverbParams.roomSize = juce::jmap(reverbTimeNorm, 0.12f, 0.95f);
     const float reverbMix = reverbMixSmoothed.skip(buffer.getNumSamples());
     reverbParams.wetLevel = reverbMix;
     reverbParams.dryLevel = 1.0f - reverbMix;
@@ -418,6 +419,10 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         const float weightB = 1.0f - weightA;
         pitchShiftPhase += std::abs(1.0f - correctionRatio) / pitchRange;
         if (pitchShiftPhase >= 1.0f) pitchShiftPhase -= std::floor(pitchShiftPhase);
+        const float currentDelayMs = delayTimeSmoothed.getNextValue();
+        const int delaySamples = juce::jlimit(1, static_cast<int>(getSampleRate()) - 1,
+            static_cast<int>(currentDelayMs * getSampleRate() * 0.001f));
+        delayLine.setDelay(static_cast<float>(delaySamples));
         const float delayWet = delayMixSmoothed.getNextValue();
         const float doublerAmount = doublerSmoothed.getNextValue();
         const float softenAmount = softenSmoothed.getNextValue();
