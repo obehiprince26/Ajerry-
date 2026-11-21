@@ -615,6 +615,18 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     // JUCE reverb runs in-place; its dry/wet balance is smoothed per block.
     reverb.process(context);
+
+    // Re-check the complete wet output after reverb so late reflections are also
+    // covered by the final safety stage (the pre-reverb stage alone cannot do this).
+    for (int channel = 0; channel < numChannels; ++channel)
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            const float value = buffer.getSample(channel, sample);
+            const float magnitude = std::abs(value);
+            if (magnitude > 0.98f)
+                buffer.setSample(channel, sample, std::copysign(
+                    0.98f + 0.02f * std::tanh((magnitude - 0.98f) * 8.0f), value));
+        }
 }
 
 juce::String AjerryVST3AudioProcessor::getDetectedKeyName() const
