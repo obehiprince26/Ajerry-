@@ -403,7 +403,31 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float refinedLag = static_cast<float>(bestLag) + juce::jlimit(-0.5f, 0.5f, offset);
                 detectedPitchHz = pitchAnalysisSampleRate / refinedLag;
                 const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
-                const int measuredNote = static_cast<int>(std::round(midi));
+                const int rawMeasuredNote = static_cast<int>(std::round(midi));
+                int measuredNote = rawMeasuredNote;
+                // When the beat-derived key is sufficiently stable, constrain SPOTON
+                // to that key's diatonic scale. Until then retain safe chromatic tuning.
+                if (detectedKeyRoot >= 0 && detectedKeyConfidence >= 0.12f && keyAnalysisFrames >= 32)
+                {
+                    static constexpr std::array<int, 7> majorIntervals { 0, 2, 4, 5, 7, 9, 11 };
+                    static constexpr std::array<int, 7> minorIntervals { 0, 2, 3, 5, 7, 8, 10 };
+                    const auto& intervals = detectedKeyMinor ? minorIntervals : majorIntervals;
+                    int bestDistance = 99;
+                    for (int octave = -1; octave <= 1; ++octave)
+                    {
+                        for (const int interval : intervals)
+                        {
+                            const int candidate = detectedKeyRoot + octave * 12 + interval
+                                + 12 * (rawMeasuredNote / 12);
+                            const int distance = std::abs(candidate - rawMeasuredNote);
+                            if (distance < bestDistance)
+                            {
+                                bestDistance = distance;
+                                measuredNote = candidate;
+                            }
+                        }
+                    }
+                }
 
                 // Do not calculate a correction against the previous note while a
                 // new note is still being verified. That avoids a brief wrong-way
