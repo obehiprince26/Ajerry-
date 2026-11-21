@@ -248,7 +248,6 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
                 const float semitones = (std::round(midi) - midi) * spotOnAmount;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
-            }
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
             }
             else if (pitchHoldSamples > 0)
