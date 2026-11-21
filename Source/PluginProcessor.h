@@ -24,10 +24,14 @@ private:
  juce::dsp::Compressor<float> compressor;
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> doublerLine{96000};
+ juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> pitchLine{96000};
  juce::dsp::Reverb reverb;
  juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
  float gateEnvelope=0.0f;
  float doublerPhase=0.0f;
+ std::array<float, 2048> pitchAnalysisBuffer{};
+ int pitchAnalysisWrite=0, pitchAnalysisCount=0, pitchAnalysisCountdown=0;
+ float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
  bool gateIsOpen=false;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
