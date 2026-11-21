@@ -64,3 +64,19 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   b.setSample(0,i,left*(1.0f-doubler*0.30f)+delayedR*doubler*0.30f);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-doubler*0.30f)+delayedL*doubler*0.30f);
  }
  for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
+}
+
+void AjerryVST3AudioProcessor::getStateInformation(juce::MemoryBlock& dest)
+{
+    auto state = parameters.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, dest);
+}
+
+
+void AjerryVST3AudioProcessor::setStateInformation(const void* data, int size)
+{
+    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, size));
+    if (xml != nullptr && xml->hasTagName(parameters.state.getType()))
+        parameters.replaceState(juce::ValueTree::fromXml(*xml));
+}
