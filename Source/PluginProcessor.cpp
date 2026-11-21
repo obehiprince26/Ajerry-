@@ -76,6 +76,7 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     detectedPitchHz = 0.0f;
     pitchRatio = 1.0f;
     pitchShiftPhase = 0.0f;
+    pitchHoldSamples = 0;
     gateIsOpen = false;
 
     hpFilter.coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 80.0f);
@@ -248,6 +249,14 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float semitones = (std::round(midi) - midi) * spotOnAmount;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
             }
+                pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
+            }
+            else if (pitchHoldSamples > 0)
+            {
+                // Brief consonants and breath gaps should not pull the correction
+                // back to unison between voiced frames.
+                pitchHoldSamples = juce::jmax(0, pitchHoldSamples - windowSize);
+            }
             else
             {
                 detectedPitchHz = 0.0f;
@@ -296,7 +305,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             const float pitchB = pitchLine.popSample(channel, delayAtPhase(phaseB), false);
             pitchLine.pushSample(channel, dry);
             const float shifted = pitchA * weightA + pitchB * weightB;
-            const float pitchWet = (detectedPitchHz > 0.0f && spotOnAmount > 0.001f) ? spotOnAmount : 0.0f;
+            const float pitchWet = (detectedPitchHz > 0.0f && spotOnAmount > 0.001f && pitchHoldSamples > 0) ? 1.0f : 0.0f;
             const float spotOnSignal = dry * (1.0f - pitchWet) + shifted * pitchWet;
             const float echo = delayLine.popSample(channel);
 
