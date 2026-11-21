@@ -38,6 +38,8 @@ private:
  float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
  int pitchHoldSamples=0;
  int stableMidiNote=-1, candidateMidiNote=-1, candidateNoteFrames=0;
+ std::array<float, 2> pitchChannelEnergySmoothed{};
+ int pitchAnalysisChannel=0;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchRatioSmoothed;
  juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> pitchConfidenceSmoothed;
  float pitchConfidence=0.0f;
