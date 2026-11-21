@@ -4,7 +4,7 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
  setSize(900,520);title.setText("AJERRY CHANNEL STRIP - Compact",juce::dontSendNotification);title.setColour(juce::Label::textColourId,gold);title.setFont(juce::Font(22.0f,juce::Font::bold));title.setJustificationType(juce::Justification::centred);addAndMakeVisible(title);
  const char* names[]={"1 GATE","2 SPOTON","3 EQ","4 COMP","5 SOFTEN","6 DOUBLER","7 DELAY","8 REVERB"};
  for(int i=0;i<8;++i){tabs[i].setButtonText(names[i]);tabs[i].onClick=[this,i]{changeTab(i);};addAndMakeVisible(tabs[i]);}
- for(int i=0;i<3;++i){knobs[i].setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);knobs[i].setTextBoxStyle(juce::Slider::TextBoxBelow,false,70,20);knobs[i].setColour(juce::Slider::rotarySliderFillColourId,gold);knobs[i].setColour(juce::Slider::thumbColourId,gold);addAndMakeVisible(knobs[i]);labels[i].setColour(juce::Label::textColourId,gold);labels[i].setJustificationType(juce::Justification::centred);addAndMakeVisible(labels[i]);vals[i].setColour(juce::Label::textColourId,juce::Colours::white);vals[i].setJustificationType(juce::Justification::centred);addAndMakeVisible(vals[i]);}
+ for(int i=0;i<3;++i){knobs[i].setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);knobs[i].setTextBoxStyle(juce::Slider::TextBoxBelow,false,70,20);knobs[i].setColour(juce::Slider::rotarySliderFillColourId,gold);knobs[i].setColour(juce::Slider::thumbColourId,gold);knobs[i].onValueChange=[this,i]{juce::String id;switch(page){case 0:if(i==0)id="gate";break;case 1:if(i==0)id="tune";break;case 2:if(i==0)id="hp";else if(i==1)id="lp";break;case 3:id=i==0?"threshold":(i==1?"ratio":"gain");break;case 4:if(i==1)id="soften";break;case 5:if(i==1)id="doubler";break;case 6:if(i==0)id="delayTime";else if(i==1)id="delayMix";break;case 7:if(i==0)id="reverbTime";else if(i==1)id="reverbMix";break;}if(id.isNotEmpty())if(auto* parameter=proc.parameters.getParameter(id))parameter->setValueNotifyingHost(parameter->convertTo0to1(static_cast<float>(knobs[i].getValue())));};addAndMakeVisible(knobs[i]);labels[i].setColour(juce::Label::textColourId,gold);labels[i].setJustificationType(juce::Justification::centred);addAndMakeVisible(labels[i]);vals[i].setColour(juce::Label::textColourId,juce::Colours::white);vals[i].setJustificationType(juce::Justification::centred);addAndMakeVisible(vals[i]);}
  footer.setColour(juce::Label::textColourId,gold);footer.setJustificationType(juce::Justification::centred);addAndMakeVisible(footer);changeTab(0);
 }
 void AjerryVST3AudioProcessorEditor::changeTab(int p){
@@ -19,6 +19,17 @@ void AjerryVST3AudioProcessorEditor::changeTab(int p){
  case 5:a[0]="MODE";a[1]="AMOUNT";a[2]="ANALYSIS";v[0]="CHORUS";v[1]="60%";v[2]="Doubled voice / stereo";f="Learning meter - Verse / Chorus / Rap / Trap / Hook";break;
  case 6:a[0]="TIME / SPEED";a[1]="DELAY / ECHO";a[2]="ANALYSIS";v[0]="300 ms";v[1]="10 percent";v[2]="Echo fading";f="AJERRY SIMPLE DELAY - Time controls speed - Delay controls echo amount";break;
  default:a[0]="TIME / SIZE";a[1]="REVERB / ROOM";a[2]="ANALYSIS";v[0]="Studio - 300 ms";v[1]="20% CLEAR VOICE";v[2]="Room tail";f="AJERRY IMPROVED REVERB - Time shows room - Voice stays clear";break;
+ }
+ auto bindKnob=[this](int index,const juce::String& id,double minimum,double maximum,double step){knobs[index].setRange(minimum,maximum,step);if(auto* parameter=proc.parameters.getParameter(id))knobs[index].setValue(parameter->convertFrom0to1(parameter->getValue()),juce::dontSendNotification);};
+ switch(p){
+ case 0:bindKnob(0,"gate",-60.0,0.0,0.1);break;
+ case 1:bindKnob(0,"tune",0.0,100.0,0.1);break;
+ case 2:bindKnob(0,"hp",20.0,500.0,1.0);bindKnob(1,"lp",2000.0,20000.0,10.0);break;
+ case 3:bindKnob(0,"threshold",-60.0,0.0,0.1);bindKnob(1,"ratio",1.0,20.0,0.1);bindKnob(2,"gain",-12.0,12.0,0.1);break;
+ case 4:bindKnob(1,"soften",0.0,100.0,0.1);break;
+ case 5:bindKnob(1,"doubler",0.0,100.0,0.1);break;
+ case 6:bindKnob(0,"delayTime",1.0,1000.0,1.0);bindKnob(1,"delayMix",0.0,100.0,0.1);break;
+ default:bindKnob(0,"reverbTime",50.0,2000.0,1.0);bindKnob(1,"reverbMix",0.0,100.0,0.1);break;
  }
  for(int i=0;i<3;++i){labels[i].setText(a[i],juce::dontSendNotification);vals[i].setText(v[i],juce::dontSendNotification);}footer.setText(f,juce::dontSendNotification);repaint();
 }
