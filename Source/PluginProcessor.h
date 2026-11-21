@@ -25,7 +25,8 @@ private:
  std::array<juce::dsp::IIR::Filter<float>,4> eqFilters;
  juce::dsp::Compressor<float> compressor; // Stage 1: gentle leveler
  juce::dsp::Compressor<float> peakCatcher; // Stage 2: fast peak control
- juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};\n juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> doublerLine{96000};
+ juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};
+ juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> doublerLine{96000};
  juce::dsp::Reverb reverb;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
