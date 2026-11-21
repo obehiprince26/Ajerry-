@@ -293,18 +293,22 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
                 const int measuredNote = static_cast<int>(std::round(midi));
 
-                // Require a second consistent analysis frame before changing the
-                // target note. This rejects brief octave jumps and noisy note edges.
+                // Do not calculate a correction against the previous note while a
+                // new note is still being verified. That avoids a brief wrong-way
+                // pitch pull during note transitions and octave-error rejection.
+                bool targetNoteConfirmed = false;
                 if (stableMidiNote < 0)
                 {
                     stableMidiNote = measuredNote;
                     candidateMidiNote = -1;
                     candidateNoteFrames = 0;
+                    targetNoteConfirmed = true;
                 }
                 else if (measuredNote == stableMidiNote)
                 {
                     candidateMidiNote = -1;
                     candidateNoteFrames = 0;
+                    targetNoteConfirmed = true;
                 }
                 else
                 {
@@ -316,9 +320,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                         candidateNoteFrames = 1;
                     }
 
-                    // Require extra evidence for large note jumps (often octave
-                    // errors at consonant boundaries); ordinary melodic steps remain
-                    // responsive. This is analysis-only and adds no audio-thread waits.
+                    // Large note jumps need stronger evidence than ordinary melodic
+                    // steps; only a confirmed transition updates the correction target.
                     const int noteJump = std::abs(measuredNote - stableMidiNote);
                     const int requiredFrames = noteJump >= 7 ? 4 : 2;
                     if (candidateNoteFrames >= requiredFrames)
@@ -326,15 +329,19 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                         stableMidiNote = candidateMidiNote;
                         candidateMidiNote = -1;
                         candidateNoteFrames = 0;
+                        targetNoteConfirmed = true;
                     }
                 }
 
-                float semitones = (static_cast<float>(stableMidiNote) - midi) * spotOnAmount;
-                // A small cents deadband prevents the shifter chasing tiny detector
-                // fluctuations around the target note and reduces modulation artifacts.
-                if (std::abs(semitones) < 0.04f)
-                    semitones = 0.0f;
-                pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
+                if (targetNoteConfirmed)
+                {
+                    float semitones = (static_cast<float>(stableMidiNote) - midi) * spotOnAmount;
+                    // A small cents deadband prevents the shifter chasing tiny detector
+                    // fluctuations around the target note and reduces modulation artifacts.
+                    if (std::abs(semitones) < 0.04f)
+                        semitones = 0.0f;
+                    pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
+                }
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
 
                 // Confidence now considers both periodicity (YIN score) and the
