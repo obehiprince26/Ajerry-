@@ -576,6 +576,17 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     reverb.process(context);
 }
 
+juce::String AjerryVST3AudioProcessor::getDetectedKeyName() const
+{
+    static const std::array<const char*, 12> noteNames {
+        "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
+    };
+    if (detectedKeyRoot < 0 || detectedKeyRoot >= 12 || detectedKeyConfidence < 0.02f)
+        return "Analysing";
+    return juce::String(noteNames[static_cast<size_t>(detectedKeyRoot)])
+        + (detectedKeyMinor ? " minor" : " major");
+}
+
 juce::AudioProcessorEditor* AjerryVST3AudioProcessor::createEditor()
 {
     return new AjerryVST3AudioProcessorEditor(*this);
