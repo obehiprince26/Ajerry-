@@ -23,6 +23,10 @@ AjerryVST3AudioProcessorEditor::AjerryVST3AudioProcessorEditor(AjerryVST3AudioPr
         tabs[i].setColour(juce::TextButton::textColourOnId, juce::Colours::black);
         addAndMakeVisible(tabs[i]);
     }
+    eqFreq[0]=proc.parameters.getRawParameterValue("eqLowFreq")->load(); eqGain[0]=proc.parameters.getRawParameterValue("eqLowGain")->load();
+    eqFreq[1]=proc.parameters.getRawParameterValue("eqLowMidFreq")->load(); eqGain[1]=proc.parameters.getRawParameterValue("eqLowMidGain")->load();
+    eqFreq[2]=proc.parameters.getRawParameterValue("eqMidFreq")->load(); eqGain[2]=proc.parameters.getRawParameterValue("eqMidGain")->load();
+    eqFreq[3]=proc.parameters.getRawParameterValue("eqHighFreq")->load(); eqGain[3]=proc.parameters.getRawParameterValue("eqHighGain")->load();
     changeTab(0);
     startTimer(1000);
 }
@@ -238,8 +242,8 @@ void AjerryVST3AudioProcessorEditor::mouseDrag(const juce::MouseEvent& e) {
         setParameter(gainIds[dragIndex],eqGain[dragIndex]);
         repaint();return;
     }
-    if(eqFilterDrag==0){float norm=juce::jlimit(0.0f,1.0f,(knobStart.y-e.position.y+150.0f)/300.0f);setParameter("hp",20.0f*std::pow(25.0f,norm));repaint();return;}
-    if(eqFilterDrag==1){float norm=juce::jlimit(0.0f,1.0f,(knobStart.y-e.position.y+150.0f)/300.0f);setParameter("lp",2000.0f*std::pow(10.0f,norm));repaint();return;}
+    if(eqFilterDrag==0){float norm=juce::jlimit(0.0f,1.0f,(knobStartValue-20.0f)/480.0f+(knobStart.y-e.position.y)/300.0f);setParameter("hp",20.0f*std::pow(25.0f,norm));repaint();return;}
+    if(eqFilterDrag==1){float norm=juce::jlimit(0.0f,1.0f,(knobStartValue-2000.0f)/18000.0f+(knobStart.y-e.position.y)/300.0f);setParameter("lp",2000.0f*std::pow(10.0f,norm));repaint();return;}
     if(draggingKnob){if(page==0&&activeReverbKnob==10)setParameter("gate",juce::jlimit(-60.0f,0.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==0&&activeReverbKnob==11)setParameter("gateRange",juce::jlimit(0.0f,60.0f,knobStartValue+(knobStart.y-e.position.y)*0.25f));else if(page==3){const float delta=(knobStart.y-e.position.y)*0.25f;if(activeReverbKnob==0)setParameter("threshold",juce::jlimit(-60.0f,0.0f,knobStartValue+delta));else if(activeReverbKnob==1)setParameter("ratio",juce::jlimit(1.0f,20.0f,knobStartValue+delta*.08f));else if(activeReverbKnob==2)setParameter("gain",juce::jlimit(-12.0f,12.0f,knobStartValue+delta*.08f));}else if((page==6||page==7)&&activeReverbKnob==0)setParameter(page==6?"delayTime":"reverbTime",juce::jlimit(page==6?1.0f:50.0f,page==6?1000.0f:2000.0f,knobStartValue+(knobStart.y-e.position.y)*10.0f));else if((page==6||page==7)&&activeReverbKnob==1)setParameter(page==6?"delayMix":"reverbMix",juce::jlimit(0.0f,100.0f,knobStartValue+(knobStart.y-e.position.y)*0.55f));else knobValues[0]=juce::jlimit(0.0f,1.0f,knobStartValue+(knobStart.y-e.position.y)/180.0f);repaint();}
 }
 void AjerryVST3AudioProcessorEditor::mouseUp(const juce::MouseEvent&) {eqFilterDrag=-1;activeReverbKnob=-1;draggingKnob=false;draggingEqDot=false;dragIndex=-1;}
