@@ -21,6 +21,7 @@ public:
  float meterGR=0.0f;
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter;
+ std::array<juce::dsp::IIR::Filter<float>,4> eqFilters;
  juce::dsp::Compressor<float> compressor;
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};
  juce::dsp::Reverb reverb;
