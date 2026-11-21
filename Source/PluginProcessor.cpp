@@ -77,7 +77,7 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     pitchFrameScratch.fill(0.0f);
     pitchCmndScratch.fill(0.0f);
     pitchAnalysisWrite = pitchAnalysisCount = pitchAnalysisCountdown = 0;
-    pitchAnalysisDecimation = juce::jmax(1, static_cast<int>(std::ceil(sampleRate / 48000.0)));
+    pitchAnalysisDecimation = juce::jmax(1, static_cast<int>(std::ceil(sampleRate / 24000.0)));
     pitchDecimationCounter = 0;
     pitchAnalysisSampleRate = static_cast<float>(sampleRate) / static_cast<float>(pitchAnalysisDecimation);
     detectedPitchHz = 0.0f;
@@ -206,11 +206,11 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
         pitchAnalysisWrite = (pitchAnalysisWrite + 1) % static_cast<int>(pitchAnalysisBuffer.size());
         pitchAnalysisCount = juce::jmin(pitchAnalysisCount + 1, static_cast<int>(pitchAnalysisBuffer.size()));
-        if (++pitchAnalysisCountdown >= 1024 && pitchAnalysisCount >= 2048)
+        if (++pitchAnalysisCountdown >= 512 && pitchAnalysisCount >= 1024)
         {
             pitchAnalysisCountdown = 0;
-            constexpr int windowSize = 2048;
-            const int minLag = juce::jlimit(20, 80, static_cast<int>(pitchAnalysisSampleRate / 1500.0f));
+            constexpr int windowSize = 1024;
+            const int minLag = juce::jlimit(12, 80, static_cast<int>(pitchAnalysisSampleRate / 1500.0f));
             const int maxLag = juce::jlimit(minLag + 2, windowSize - 2,
                                             static_cast<int>(pitchAnalysisSampleRate / 55.0f));
             auto& frame = pitchFrameScratch;
@@ -367,7 +367,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 // Hold the last stable target briefly through consonants, while
                 // fading confidence on each missed frame. This avoids the abrupt
                 // full-wet-to-dry transition that can sound like a pitch-shift glitch.
-                pitchHoldSamples = juce::jmax(0, pitchHoldSamples - 1024);
+                pitchHoldSamples = juce::jmax(0, pitchHoldSamples - 512);
                 pitchConfidence *= 0.72f;
             }
             else
