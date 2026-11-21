@@ -20,6 +20,10 @@ public:
  juce::AudioProcessorValueTreeState parameters;
  static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
  float meterGR=0.0f;
+ int getDetectedKeyRoot() const noexcept { return detectedKeyRoot; }
+ bool isDetectedKeyMinor() const noexcept { return detectedKeyMinor; }
+ float getDetectedKeyConfidence() const noexcept { return detectedKeyConfidence; }
+ juce::String getDetectedKeyName() const;
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter;
  juce::dsp::Compressor<float> compressor;
@@ -29,6 +33,15 @@ private:
  // in the dual-head vocal pitch shifter; the other effect delay lines stay linear.
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Lagrange3rd> pitchLine{96000};
  juce::dsp::Reverb reverb;
+ // Beat-key analysis: 2048-point FFT chroma accumulation, independent of monophonic SPOTON tracking.
+ juce::dsp::FFT keyFFT{11};
+ std::array<float, 4096> keyFFTData{};
+ std::array<float, 2048> keyAnalysisBuffer{};
+ std::array<float, 12> keyChromaHistory{};
+ int keyAnalysisWrite=0, keyAnalysisCount=0, keyAnalysisCountdown=0, keyAnalysisFrames=0;
+ int detectedKeyRoot=-1;
+ bool detectedKeyMinor=false;
+ float detectedKeyConfidence=0.0f;
  juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayTimeSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
  float gateEnvelope=0.0f;
  float doublerPhase=0.0f;
