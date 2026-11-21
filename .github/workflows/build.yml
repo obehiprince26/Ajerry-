@@ -2,7 +2,7 @@ name: Build AJERRY
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dsp-quality-upgrade-2027 ]
   workflow_dispatch:
 
 jobs:
@@ -29,9 +29,11 @@ jobs:
         with:
           name: AJERRY-VST3
           path: build/AJERRY_artefacts/Release/VST3/
+          if-no-files-found: error
 
       - name: Upload AAX
         uses: actions/upload-artifact@v4
         with:
           name: AJERRY-AAX
           path: build/AJERRY_artefacts/Release/AAX/
+          if-no-files-found: warn
