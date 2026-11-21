@@ -252,7 +252,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     difference += delta * delta;
                 }
                 cumulativeDifference += difference;
-                if (lag >= minLag)
+                if (lag >= minLag - 1)
                 {
                     const float normalized = cumulativeDifference > 1.0e-12f
                         ? difference * static_cast<float>(lag) / cumulativeDifference : 1.0f;
@@ -360,7 +360,10 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     (neighbourMean - centre) / (neighbourMean + 1.0e-6f) * 4.0f);
                 const float periodicityConfidence =
                     juce::jlimit(0.0f, 1.0f, (0.20f - bestValue) * 6.25f);
-                pitchConfidence = periodicityConfidence * troughShape;
+                const float measuredConfidence = periodicityConfidence * troughShape;
+                // Fade correction authority while a new note is being confirmed;
+                // never apply the previous note's target strongly to a new syllable.
+                pitchConfidence = targetNoteConfirmed ? measuredConfidence : pitchConfidence * 0.65f;
             }
             else if (pitchHoldSamples > 0)
             {
