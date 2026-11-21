@@ -169,44 +169,79 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         {
             pitchAnalysisCountdown = 0;
             constexpr int windowSize = 1024;
-            constexpr int minLag = 44;
-            constexpr int maxLag = 600;
+            const int minLag = juce::jlimit(20, 80, static_cast<int>(sampleRate / 1500.0f));
+            const int maxLag = juce::jlimit(minLag + 2, windowSize - 2,
+                                            static_cast<int>(sampleRate / 75.0f));
             std::array<float, windowSize> frame{};
+            float frameEnergy = 0.0f;
             for (int n = 0; n < windowSize; ++n)
             {
                 const int index = (pitchAnalysisWrite - windowSize + n + static_cast<int>(pitchAnalysisBuffer.size()))
                                   % static_cast<int>(pitchAnalysisBuffer.size());
-                frame[static_cast<size_t>(n)] = pitchAnalysisBuffer[static_cast<size_t>(index)];
+                const float value = pitchAnalysisBuffer[static_cast<size_t>(index)];
+                frame[static_cast<size_t>(n)] = value;
+                frameEnergy += value * value;
             }
-            std::array<float, maxLag + 1> cmnd{};
-            float runningDifference = 0.0f;
+            const float frameRms = std::sqrt(frameEnergy / static_cast<float>(windowSize));
+            std::array<float, windowSize> cmnd{};
+            float cumulativeDifference = 0.0f;
             int bestLag = 0;
-            for (int lag = minLag; lag <= maxLag; ++lag)
+            float bestValue = 1.0f;
+
+            // YIN cumulative-mean-normalised difference: accumulate from lag 1,
+            // not minLag, so the normalisation remains mathematically correct.
+            for (int lag = 1; lag <= maxLag; ++lag)
             {
-                float sum = 0.0f;
+                float difference = 0.0f;
                 for (int n = 0; n < windowSize - lag; ++n)
                 {
                     const float delta = frame[static_cast<size_t>(n)] - frame[static_cast<size_t>(n + lag)];
-                    sum += delta * delta;
+                    difference += delta * delta;
                 }
-                runningDifference += sum;
-                cmnd[static_cast<size_t>(lag)] = runningDifference > 1.0e-12f
-                    ? sum * static_cast<float>(lag - minLag + 1) / runningDifference : 1.0f;
-                if (lag > minLag && cmnd[static_cast<size_t>(lag)] < 0.15f)
+                cumulativeDifference += difference;
+                if (lag >= minLag)
                 {
-                    bestLag = lag;
-                    while (bestLag < maxLag && cmnd[static_cast<size_t>(bestLag + 1)] < cmnd[static_cast<size_t>(bestLag)])
-                        ++bestLag;
-                    break;
+                    const float normalized = cumulativeDifference > 1.0e-12f
+                        ? difference * static_cast<float>(lag) / cumulativeDifference : 1.0f;
+                    cmnd[static_cast<size_t>(lag)] = normalized;
+                    if (normalized < bestValue)
+                    {
+                        bestValue = normalized;
+                        bestLag = lag;
+                    }
                 }
             }
-            if (bestLag > 0 && cmnd[static_cast<size_t>(bestLag)] < 0.25f)
+
+            // Prefer the first convincing YIN trough to avoid octave errors;
+            // fall back to the global minimum only when it is still credible.
+            if (frameRms >= 0.008f)
+            {
+                for (int lag = minLag + 1; lag < maxLag; ++lag)
+                {
+                    const float value = cmnd[static_cast<size_t>(lag)];
+                    if (value < 0.15f
+                        && value <= cmnd[static_cast<size_t>(lag - 1)]
+                        && value <= cmnd[static_cast<size_t>(lag + 1)])
+                    {
+                        bestLag = lag;
+                        bestValue = value;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                bestLag = 0;
+            }
+
+            if (bestLag > 0 && bestValue < 0.25f && frameRms >= 0.008f)
             {
                 const float left = cmnd[static_cast<size_t>(juce::jmax(minLag, bestLag - 1))];
                 const float centre = cmnd[static_cast<size_t>(bestLag)];
                 const float right = cmnd[static_cast<size_t>(juce::jmin(maxLag, bestLag + 1))];
                 const float denominator = left - 2.0f * centre + right;
-                const float offset = std::abs(denominator) > 1.0e-9f ? 0.5f * (left - right) / denominator : 0.0f;
+                const float offset = std::abs(denominator) > 1.0e-9f
+                    ? 0.5f * (left - right) / denominator : 0.0f;
                 const float refinedLag = static_cast<float>(bestLag) + juce::jlimit(-0.5f, 0.5f, offset);
                 detectedPitchHz = sampleRate / refinedLag;
                 const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
