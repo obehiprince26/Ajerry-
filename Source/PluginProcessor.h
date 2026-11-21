@@ -40,8 +40,7 @@ private:
  std::array<float, 12> keyChromaHistory{};
  int keyAnalysisWrite=0, keyAnalysisCount=0, keyAnalysisCountdown=0, keyAnalysisFrames=0;
  int detectedKeyRoot=-1, candidateKeyRoot=-1, candidateKeyFrames=0;
- bool candidateKeyMinor=false; detectedKeyRoot=-1;
- bool detectedKeyMinor=false;
+ bool candidateKeyMinor=false, detectedKeyMinor=false;
  float detectedKeyConfidence=0.0f;
  juce::SmoothedValue<float,juce::ValueSmoothingTypes::Linear> outputGainSmoothed,delayTimeSmoothed,delayMixSmoothed,reverbMixSmoothed,softenSmoothed,doublerSmoothed,gateGainSmoothed,hpCutoffSmoothed,lpCutoffSmoothed;
  float gateEnvelope=0.0f;
