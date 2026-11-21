@@ -81,6 +81,9 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     keyChromaHistory.fill(0.0f);
     keyAnalysisWrite = keyAnalysisCount = keyAnalysisCountdown = keyAnalysisFrames = 0;
     detectedKeyRoot = -1;
+    candidateKeyRoot = -1;
+    candidateKeyMinor = false;
+    candidateKeyFrames = 0;
     detectedKeyMinor = false;
     detectedKeyConfidence = 0.0f;
     pitchFrameScratch.fill(0.0f);
@@ -304,10 +307,25 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     }
                     if (bestRoot >= 0)
                     {
-                        detectedKeyRoot = bestRoot;
-                        detectedKeyMinor = bestMinor;
-                        detectedKeyConfidence = juce::jlimit(0.0f, 1.0f,
+                        const float confidence = juce::jlimit(0.0f, 1.0f,
                             (bestScore - secondScore) * 5.0f);
+                        if (bestRoot == candidateKeyRoot && bestMinor == candidateKeyMinor)
+                            ++candidateKeyFrames;
+                        else
+                        {
+                            candidateKeyRoot = bestRoot;
+                            candidateKeyMinor = bestMinor;
+                            candidateKeyFrames = 1;
+                        }
+                        // Require several consistent key estimates before changing
+                        // the active scale; this prevents beat-section transitions
+                        // from making the vocal correction jump between scales.
+                        if (candidateKeyFrames >= 4 && confidence >= 0.08f)
+                        {
+                            detectedKeyRoot = bestRoot;
+                            detectedKeyMinor = bestMinor;
+                            detectedKeyConfidence = confidence;
+                        }
                     }
                 }
             }
