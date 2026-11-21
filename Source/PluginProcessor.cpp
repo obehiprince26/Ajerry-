@@ -97,7 +97,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  if(delayMix>0.0001f){for(int c=0;c<channels;++c){auto* data=b.getWritePointer(c);for(int i=0;i<samples;++i){float dry=data[i],echo=delayLine.popSample(c);delayLine.pushSample(c,dry+echo*juce::jlimit(0.0f,0.85f,feedback));data[i]=dry*(1.0f-delayMix)+echo*delayMix;}}}
  b.applyGain(juce::Decibels::decibelsToGain(gain));
  // Stage 8: reverb is last in the chain; wet/dry and room width follow their controls.
- reverb.process(context);
+ reverb.process(b);
 }
 juce::AudioProcessorEditor* AjerryVST3AudioProcessor::createEditor(){return new AjerryVST3AudioProcessorEditor(*this);}
 void AjerryVST3AudioProcessor::getStateInformation(juce::MemoryBlock& dest){auto state=parameters.copyState();std::unique_ptr<juce::XmlElement> xml(state.createXml());copyXmlToBinary(*xml,dest);}
