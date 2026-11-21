@@ -20,7 +20,7 @@ public:
  juce::AudioProcessorValueTreeState parameters;
  static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
  float meterGR=0.0f;
- std::atomic<float> analysisRms{0.0f}, analysisLowRms{0.0f}, analysisHighRms{0.0f};\n std::atomic<float> spotPitchHz{0.0f}, spotConfidence{0.0f};\n std::atomic<int> spotMidiNote{-1};
+ std::atomic<float> analysisRms{0.0f}, analysisLowRms{0.0f}, analysisHighRms{0.0f};\n std::atomic<float> spotPitchHz{0.0f}, spotConfidence{0.0f};\n std::atomic<int> spotMidiNote{-1};\n std::atomic<float> spotMidiFloat{-1.0f};
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter,softenFilter;
  std::array<juce::dsp::IIR::Filter<float>,4> eqFilters;
@@ -29,7 +29,7 @@ private:
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000};
  juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> doublerLine{96000};
  juce::dsp::Reverb reverb;
- float gateEnvelope = 1.0f;
+ juce::AudioBuffer<float> spotDelayBuffer;\n int spotDelayWrite = 0;\n float spotPhaseA = 0.0f, spotPhaseB = 0.5f;\n float spotRatioSmooth = 1.0f;\n float gateEnvelope = 1.0f;
  int gateHoldSamples = 0;
  float analysisLowState = 0.0f, analysisHighState = 0.0f;
  double analysisSum = 0.0, analysisLowSum = 0.0, analysisHighSum = 0.0;
