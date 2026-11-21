@@ -16,7 +16,7 @@ public:
  juce::AudioProcessorValueTreeState parameters; static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(); float meterGR=0.0f;
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter,softenFilter;juce::dsp::Compressor<float> compressor;
- juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000},doubleLine{96000};juce::dsp::Reverb reverb;
+ juce::dsp::DelayLine<float,juce::dsp::DelayLineInterpolationTypes::Linear> delayLine{96000},doubleLineL{96000},doubleLineR{96000};juce::dsp::Reverb reverb;
  float gateGain=1.0f,softEnvelope=0.0f;
  JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AjerryVST3AudioProcessor)
 };
