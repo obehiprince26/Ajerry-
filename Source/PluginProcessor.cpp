@@ -336,7 +336,17 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                     semitones = 0.0f;
                 pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
                 pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
-                pitchConfidence = juce::jlimit(0.0f, 1.0f, (0.20f - bestValue) * 6.25f);
+
+                // Confidence now considers both periodicity (YIN score) and the
+                // shape of the selected trough. A clear, well-defined minimum is
+                // more trustworthy than a broad ambiguous valley with a similar
+                // raw score, reducing correction on breathy/noisy material.
+                const float neighbourMean = 0.5f * (left + right);
+                const float troughShape = juce::jlimit(0.35f, 1.0f,
+                    (neighbourMean - centre) / (neighbourMean + 1.0e-6f) * 4.0f);
+                const float periodicityConfidence =
+                    juce::jlimit(0.0f, 1.0f, (0.20f - bestValue) * 6.25f);
+                pitchConfidence = periodicityConfidence * troughShape;
             }
             else if (pitchHoldSamples > 0)
             {
