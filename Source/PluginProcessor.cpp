@@ -77,6 +77,9 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     pitchFrameScratch.fill(0.0f);
     pitchCmndScratch.fill(0.0f);
     pitchAnalysisWrite = pitchAnalysisCount = pitchAnalysisCountdown = 0;
+    pitchAnalysisDecimation = juce::jmax(1, static_cast<int>(std::ceil(sampleRate / 48000.0)));
+    pitchDecimationCounter = 0;
+    pitchAnalysisSampleRate = static_cast<float>(sampleRate) / static_cast<float>(pitchAnalysisDecimation);
     detectedPitchHz = 0.0f;
     pitchRatio = 1.0f;
     pitchShiftPhase = 0.0f;
@@ -195,17 +198,21 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             detector = juce::jmax(detector, std::abs(buffer.getSample(channel, sample)));
         const float monoForPitch = buffer.getSample(pitchAnalysisChannel, sample);
 
-        // SPOTON: rolling monophonic vocal analysis using a YIN-style difference function.
-        pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
+        // SPOTON: analyse at no more than 48 kHz. Decimation after the channel filters
+        // preserves the vocal band while keeping detector cost predictable at 88.2/96/192 kHz.
+        if (++pitchDecimationCounter >= pitchAnalysisDecimation)
+        {
+            pitchDecimationCounter = 0;
+            pitchAnalysisBuffer[static_cast<size_t>(pitchAnalysisWrite)] = monoForPitch;
         pitchAnalysisWrite = (pitchAnalysisWrite + 1) % static_cast<int>(pitchAnalysisBuffer.size());
         pitchAnalysisCount = juce::jmin(pitchAnalysisCount + 1, static_cast<int>(pitchAnalysisBuffer.size()));
         if (++pitchAnalysisCountdown >= 1024 && pitchAnalysisCount >= 2048)
         {
             pitchAnalysisCountdown = 0;
             constexpr int windowSize = 2048;
-            const int minLag = juce::jlimit(20, 80, static_cast<int>(sampleRate / 1500.0f));
+            const int minLag = juce::jlimit(20, 80, static_cast<int>(pitchAnalysisSampleRate / 1500.0f));
             const int maxLag = juce::jlimit(minLag + 2, windowSize - 2,
-                                            static_cast<int>(sampleRate / 55.0f));
+                                            static_cast<int>(pitchAnalysisSampleRate / 55.0f));
             auto& frame = pitchFrameScratch;
             auto& cmnd = pitchCmndScratch;
             cmnd.fill(0.0f);
@@ -289,7 +296,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 const float offset = std::abs(denominator) > 1.0e-9f
                     ? 0.5f * (left - right) / denominator : 0.0f;
                 const float refinedLag = static_cast<float>(bestLag) + juce::jlimit(-0.5f, 0.5f, offset);
-                detectedPitchHz = sampleRate / refinedLag;
+                detectedPitchHz = pitchAnalysisSampleRate / refinedLag;
                 const float midi = 69.0f + 12.0f * std::log2(detectedPitchHz / 440.0f);
                 const int measuredNote = static_cast<int>(std::round(midi));
 
@@ -342,7 +349,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                         semitones = 0.0f;
                     pitchRatio = juce::jlimit(0.80f, 1.25f, std::pow(2.0f, semitones / 12.0f));
                 }
-                pitchHoldSamples = static_cast<int>(sampleRate * 0.12f);
+                pitchHoldSamples = static_cast<int>(pitchAnalysisSampleRate * 0.12f);
 
                 // Confidence now considers both periodicity (YIN score) and the
                 // shape of the selected trough. A clear, well-defined minimum is
@@ -373,6 +380,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
             }
             pitchRatioSmoothed.setTargetValue(pitchRatio);
             pitchConfidenceSmoothed.setTargetValue(pitchConfidence);
+        }
         }
 
         const float envelopeCoefficient = detector > gateEnvelope
