@@ -107,7 +107,7 @@ void AjerryVST3AudioProcessorEditor::paint(juce::Graphics& g) {
             centredText(g,"Listen to room noise 1 min",{left.getX()+10,c.y+55,left.getWidth()-20,28},17);
             centredText(g,"SUGGESTED THRESHOLD: ---\nSUGGESTED RANGE: ---\nPress LISTEN to show suggestion\nSuggestion Only, You Set It Yourself",{left.getX()+12,c.y+88,left.getWidth()-24,left.getHeight()*.32f},17);
             centredText(g,"GATE OPEN                 GATE CLOSED",{left.getX()+8,left.getBottom()-55,left.getWidth()-16,34},17);
-            const gateC1=juce::Point<float>(right.getX()+right.getWidth()*.3f,right.getY()+right.getHeight()*.43f),gateC2=juce::Point<float>(right.getX()+right.getWidth()*.7f,right.getY()+right.getHeight()*.43f);
+            const auto gateC1=juce::Point<float>(right.getX()+right.getWidth()*.3f,right.getY()+right.getHeight()*.43f),gateC2=juce::Point<float>(right.getX()+right.getWidth()*.7f,right.getY()+right.getHeight()*.43f);
             gateThresholdBounds={gateC1.x-50,gateC1.y-50,100,100};gateRangeBounds={gateC2.x-50,gateC2.y-50,100,100};gateBypassBounds={right.getX()+right.getWidth()*.28f,right.getBottom()-80,right.getWidth()*.44f,40};
             drawKnob(g,gateC1,48,"THRESHOLD",juce::String(proc.parameters.getRawParameterValue("gate")->load(),1)+"dB");drawKnob(g,gateC2,48,"RANGE",juce::String(proc.parameters.getRawParameterValue("gateRange")->load(),0)+"dB");
             const bool gateOff=proc.parameters.getRawParameterValue("gateBypass")->load()>0.5f;g.setColour(gateOff?juce::Colour(0xff8a5d09):gold);g.fillRoundedRectangle(gateBypassBounds,5);centredText(g,gateOff?"GATE BYPASSED":"GATE ACTIVE",gateBypassBounds,18,gateOff?juce::Colours::black:juce::Colours::black);
