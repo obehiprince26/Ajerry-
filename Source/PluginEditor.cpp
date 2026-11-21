@@ -203,7 +203,7 @@ void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     auto pos=e.position;
     if(page==7 && reverbTimeBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("reverbTime")->load();return;}
     if(page==7 && reverbMixBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("reverbMix")->load();return;}
-    if(page==2 && eqListenBounds.contains(pos){ listening=true; eqSuggestionReady=true; suggestedHP=80.0f; suggestedLP=16000.0f; repaint(); return; }
+    if(page==2 && eqListenBounds.contains(pos)){ listening=true; eqSuggestionReady=true; suggestedHP=80.0f; suggestedLP=16000.0f; repaint(); return; }
     if(page==2 && eqApplyBounds.contains(pos) && eqSuggestionReady){ setParameter("hp",suggestedHP); setParameter("lp",suggestedLP); repaint(); return; }
     if(page==2 && hpControlBounds.contains(pos)){eqFilterDrag=0;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("hp")->load();return;}
     if(page==2 && lpControlBounds.contains(pos)){eqFilterDrag=1;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("lp")->load();return;}
