@@ -124,8 +124,9 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     reverbMixSmoothed.setTargetValue(parameters.getRawParameterValue("reverbMix")->load() * 0.01f);
     softenSmoothed.setTargetValue(parameters.getRawParameterValue("soften")->load() * 0.01f);
     doublerSmoothed.setTargetValue(parameters.getRawParameterValue("doubler")->load() * 0.01f);
-    hpCutoffSmoothed.setTargetValue(hpTarget);
-    lpCutoffSmoothed.setTargetValue(lpTarget);
+    const float safeSampleRate = static_cast<float>(getSampleRate());
+    hpCutoffSmoothed.setTargetValue(juce::jlimit(20.0f, safeSampleRate * 0.40f, hpTarget));
+    lpCutoffSmoothed.setTargetValue(juce::jlimit(2000.0f, safeSampleRate * 0.45f, lpTarget));
 
     // Smooth cutoff changes at block boundaries to avoid zipper noise.
     const float hpNow = hpCutoffSmoothed.skip(numSamples);
@@ -135,8 +136,10 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     compressor.setThreshold(threshold);
     compressor.setRatio(ratio);
-    compressor.setAttack(10.0f);
-    compressor.setRelease(100.0f);
+    // A firmer ratio gets a quicker grab and shorter recovery; gentler settings
+    // retain more transient shape and use a longer, smoother release.
+    compressor.setAttack(juce::jmap(ratio, 1.0f, 20.0f, 18.0f, 5.0f));
+    compressor.setRelease(juce::jmap(ratio, 1.0f, 20.0f, 150.0f, 75.0f));
 
     const int delaySamples = juce::jlimit(1, static_cast<int>(getSampleRate()) - 1,
                                           static_cast<int>(delayMs * getSampleRate() * 0.001));
