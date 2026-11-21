@@ -76,6 +76,13 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     gateEnvelope = 0.0f;
     doublerPhase = 0.0f;
     pitchAnalysisBuffer.fill(0.0f);
+    keyFFTData.fill(0.0f);
+    keyAnalysisBuffer.fill(0.0f);
+    keyChromaHistory.fill(0.0f);
+    keyAnalysisWrite = keyAnalysisCount = keyAnalysisCountdown = keyAnalysisFrames = 0;
+    detectedKeyRoot = -1;
+    detectedKeyMinor = false;
+    detectedKeyConfidence = 0.0f;
     pitchFrameScratch.fill(0.0f);
     pitchCmndScratch.fill(0.0f);
     pitchAnalysisWrite = pitchAnalysisCount = pitchAnalysisCountdown = 0;
