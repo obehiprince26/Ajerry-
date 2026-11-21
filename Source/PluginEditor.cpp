@@ -11,7 +11,7 @@ void AjerryVST3AudioProcessorEditor::changeTab(int p){
  page=p; for(auto& attachment : attachments) attachment.reset(); for(int i=0;i<8;++i){tabs[i].setColour(juce::TextButton::buttonColourId,juce::Colours::black);tabs[i].setColour(juce::TextButton::textColourOffId,gold);tabs[i].setColour(juce::TextButton::buttonOnColourId,gold);tabs[i].setColour(juce::TextButton::textColourOnId,juce::Colours::black);tabs[i].setToggleState(i==p,juce::dontSendNotification);}
  juce::String a[3],v[3],f;
  switch(p){
- case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="ATTACK";v[0]="-40 dB";v[1]="0";v[2]="5 ms";f="Gate threshold, attenuation range and attack control";break;
+ case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="RELEASE";v[0]="-40 dB";v[1]="0";v[2]="120 ms";f="Gate threshold, attenuation and release control";break;
  case 1:a[0]="AMOUNT";a[1]="SPEED";a[2]="KEY";v[0]="0";v[1]="0";v[2]="A Minor";f="SPOTON pitch analysis and key-relative target selection (renderer pending)";break;
  case 2:a[0]="HIGH-PASS";a[1]="LOW-PASS";a[2]="EQ GAIN";v[0]="80 Hz";v[1]="16 kHz";v[2]="0 dB";f="High-pass, low-pass and level control";break;
  case 3:a[0]="THRESHOLD";a[1]="RATIO";a[2]="GAIN";v[0]="-18";v[1]="3";v[2]="+4 dB";f="Compressor threshold, ratio and post-compressor gain";break;
@@ -21,7 +21,7 @@ void AjerryVST3AudioProcessorEditor::changeTab(int p){
  default:a[0]="ROOM SIZE";a[1]="MIX";a[2]="WIDTH";v[0]="300 ms";v[1]="20%";v[2]="100%";f="Reverb size, wet mix and width";break;
  }
  const char* mapped[8][3] = {
-  {"gate","gateRange","gateAttack"},
+  {"gate","gateRange","gateRelease"},
   {"tune","tuneSpeed","tuneKey"},
   {"hp","lp","eqGain"},
   {"threshold","ratio","gain"},
