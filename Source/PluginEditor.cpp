@@ -240,7 +240,7 @@ void AjerryVST3AudioProcessorEditor::mouseDown(const juce::MouseEvent& e) {
     if(page==4 && softenAmountBounds.contains(pos)){activeReverbKnob=40;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("soften")->load();return;}
     if(page==5 && doublerAmountBounds.contains(pos)){activeReverbKnob=50;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("doubler")->load();return;}
     if(page==4 && softenModeBounds.contains(pos)){softenMode=juce::jlimit(0,2,(int)((pos.y-softenModeBounds.getY())/(softenModeBounds.getHeight()/3.0f)));setParameter("softenMode",(float)softenMode);repaint();return;}
-    if(page==5 && doublerModeBounds.contains(pos)){doublerMode=juce::jlimit(0,4,(int)((pos.y-doublerModeBounds.getY())/(doublerModeBounds.getHeight()/5.0f)));setParameter("doublerMode",(float)doublerMode);repaint();return;
+    if(page==5 && doublerModeBounds.contains(pos)){doublerMode=juce::jlimit(0,4,(int)((pos.y-doublerModeBounds.getY())/(doublerModeBounds.getHeight()/5.0f)));setParameter("doublerMode",(float)doublerMode);repaint();return;}
     if(page==3 && compThresholdBounds.contains(pos)){activeReverbKnob=0;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("threshold")->load();return;}
     if(page==3 && compRatioBounds.contains(pos)){activeReverbKnob=1;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("ratio")->load();return;}
     if(page==3 && compGainBounds.contains(pos)){activeReverbKnob=2;draggingKnob=true;knobStart=pos;knobStartValue=proc.parameters.getRawParameterValue("gain")->load();return;}
