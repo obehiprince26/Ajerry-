@@ -11,14 +11,14 @@ void AjerryVST3AudioProcessorEditor::changeTab(int p){
  page=p; for(auto& attachment : attachments) attachment.reset(); for(int i=0;i<8;++i){tabs[i].setColour(juce::TextButton::buttonColourId,juce::Colours::black);tabs[i].setColour(juce::TextButton::textColourOffId,gold);tabs[i].setColour(juce::TextButton::buttonOnColourId,gold);tabs[i].setColour(juce::TextButton::textColourOnId,juce::Colours::black);tabs[i].setToggleState(i==p,juce::dontSendNotification);}
  juce::String a[3],v[3],f;
  switch(p){
- case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="ATTACK";v[0]="-40 dB";v[1]="0";v[2]="OPEN / CLOSED";f="Step 1 of 8 - Attack Hold Release AUTO - Always ON";break;
- case 1:a[0]="AMOUNT";a[1]="SPEED";a[2]="KEY";v[0]="0";v[1]="0";v[2]="A Minor";f="AJERRY - Formant Preservation - Smooth Correction - Always ON";break;
- case 2:a[0]="HIGH-PASS";a[1]="LOW-PASS";a[2]="EQ GAIN";v[0]="80 Hz";v[1]="16 kHz";v[2]="0 dB";f="AJERRY EQ PRO - HP cuts rumble - LP cuts hiss - Press APPLY";break;
- case 3:a[0]="THRESHOLD";a[1]="RATIO";a[2]="GAIN";v[0]="-18";v[1]="3";v[2]="+4 dB";f="AJERRY COMP PRO - SERIAL INSIDE - Attack Auto - Release Auto";break;
- case 4:a[0]="AMOUNT";a[1]="FREQUENCY";a[2]="MIX";v[0]="50%";v[1]="8500 Hz";v[2]="35%";f="Learning meter - Listen 1 min - Sing S and SH words";break;
- case 5:a[0]="AMOUNT";a[1]="WIDTH";a[2]="DELAY";v[0]="60%";v[1]="60%";v[2]="18 ms";f="Learning meter - Verse / Chorus / Rap / Trap / Hook";break;
- case 6:a[0]="TIME";a[1]="MIX";a[2]="FEEDBACK";v[0]="300 ms";v[1]="10%";v[2]="20%";f="AJERRY SIMPLE DELAY - Time controls speed - Delay controls echo amount";break;
- default:a[0]="ROOM SIZE";a[1]="MIX";a[2]="WIDTH";v[0]="300 ms";v[1]="20%";v[2]="100%";f="AJERRY IMPROVED REVERB - Time shows room - Voice stays clear";break;
+ case 0:a[0]="THRESHOLD";a[1]="RANGE";a[2]="ATTACK";v[0]="-40 dB";v[1]="0";v[2]="5 ms";f="Gate threshold, attenuation range and attack control";break;
+ case 1:a[0]="AMOUNT";a[1]="SPEED";a[2]="KEY";v[0]="0";v[1]="0";v[2]="A Minor";f="SPOTON pitch analysis and key-relative target selection (renderer pending)";break;
+ case 2:a[0]="HIGH-PASS";a[1]="LOW-PASS";a[2]="EQ GAIN";v[0]="80 Hz";v[1]="16 kHz";v[2]="0 dB";f="High-pass, low-pass and level control";break;
+ case 3:a[0]="THRESHOLD";a[1]="RATIO";a[2]="GAIN";v[0]="-18";v[1]="3";v[2]="+4 dB";f="Compressor threshold, ratio and post-compressor gain";break;
+ case 4:a[0]="AMOUNT";a[1]="FREQUENCY";a[2]="MIX";v[0]="50%";v[1]="8500 Hz";v[2]="35%";f="High-frequency softening with adjustable cutoff and blend";break;
+ case 5:a[0]="AMOUNT";a[1]="WIDTH";a[2]="DELAY";v[0]="60%";v[1]="60%";v[2]="18 ms";f="Delayed doubling with width and timing controls";break;
+ case 6:a[0]="TIME";a[1]="MIX";a[2]="FEEDBACK";v[0]="300 ms";v[1]="10%";v[2]="20%";f="Delay time, wet mix and feedback";break;
+ default:a[0]="ROOM SIZE";a[1]="MIX";a[2]="WIDTH";v[0]="300 ms";v[1]="20%";v[2]="100%";f="Reverb size, wet mix and width";break;
  }
  const char* mapped[8][3] = {
   {"gate","gateRange","gateAttack"},
