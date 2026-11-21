@@ -8,6 +8,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqLowFreq","EQ Low Frequency",20.0f,20000.0f,120.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqLowGain","EQ Low Gain",-12.0f,12.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqLowMidFreq","EQ Low-Mid Frequency",20.0f,20000.0f,400.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqLowMidGain","EQ Low-Mid Gain",-12.0f,12.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqMidFreq","EQ Mid Frequency",20.0f,20000.0f,1000.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqMidGain","EQ Mid Gain",-12.0f,12.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqHighFreq","EQ High Frequency",20.0f,20000.0f,5000.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("eqHighGain","EQ High Gain",-12.0f,12.0f,0.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("threshold","Comp Threshold",-60.0f,0.0f,-18.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("ratio","Comp Ratio",1.0f,20.0f,3.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("gain","Output Gain",-12.0f,12.0f,4.0f));
@@ -21,8 +29,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
 }
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
  juce::dsp::ProcessSpec s{sr,(juce::uint32)block,(juce::uint32)getTotalNumOutputChannels()};
- hpFilter.prepare(s);lpFilter.prepare(s);compressor.prepare(s);delayLine.prepare(s);reverb.reset();
- delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));delayLine.reset();hpFilter.reset();lpFilter.reset();compressor.reset();
+ hpFilter.prepare(s);lpFilter.prepare(s);for(auto& f:eqFilters)f.prepare(s);compressor.prepare(s);delayLine.prepare(s);reverb.reset();
+ delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));delayLine.reset();hpFilter.reset();lpFilter.reset();for(auto& f:eqFilters)f.reset();compressor.reset();
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,80.0f);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,16000.0f);
  compressor.setThreshold(-18.0f);compressor.setRatio(3.0f);compressor.setAttack(10.0f);compressor.setRelease(100.0f);
 }
@@ -33,10 +41,18 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  const float thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load();
  const float ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);
+ for(int band=0;band<4;++band){
+  const char* freqIds[]={"eqLowFreq","eqLowMidFreq","eqMidFreq","eqHighFreq"};
+  const char* gainIds[]={"eqLowGain","eqLowMidGain","eqMidGain","eqHighGain"};
+  const float freq=parameters.getRawParameterValue(freqIds[band])->load();
+  const float db=parameters.getRawParameterValue(gainIds[band])->load();
+  const float safeFreq=juce::jlimit(20.0f,(float)(getSampleRate()*0.45),freq);
+  eqFilters[band].coefficients=juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),safeFreq,0.85f,juce::Decibels::decibelsToGain(db));
+ }
  compressor.setThreshold(thr);compressor.setRatio(ratio);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));
  juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverb.setParameters(reverbParams);
  for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.15f);}
- juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);compressor.process(ctx);
+ juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);for(auto& f:eqFilters)f.process(ctx);compressor.process(ctx);
  for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
  b.applyGain(juce::Decibels::decibelsToGain(gain)); reverb.process(ctx);
 }
