@@ -42,6 +42,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  const float soften=parameters.getRawParameterValue("soften")->load()/100.0f,doubler=parameters.getRawParameterValue("doubler")->load()/100.0f;
  const float thr=parameters.getRawParameterValue("threshold")->load(),ratio=parameters.getRawParameterValue("ratio")->load(),gain=parameters.getRawParameterValue("gain")->load();
  const float ms=parameters.getRawParameterValue("delayTime")->load(),mix=parameters.getRawParameterValue("delayMix")->load()/100.0f,rev=parameters.getRawParameterValue("reverbMix")->load()/100.0f;
+ const float outputGain=parameters.getRawParameterValue("gain")->load();
+ const float reverbSizeMs=parameters.getRawParameterValue("reverbTime")->load();
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(getSampleRate(),hp);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),lp);
  softenFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(getSampleRate(),juce::jmap(soften,20000.0f,6500.0f));
  for(int band=0;band<4;++band){
@@ -54,7 +56,7 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
  }
  compressor.setThreshold(juce::jlimit(-60.0f,0.0f,thr+6.0f));compressor.setRatio(juce::jlimit(1.0f,3.0f,ratio*0.67f));
  peakCatcher.setThreshold(thr);peakCatcher.setRatio(ratio);peakCatcher.setAttack(2.0f);peakCatcher.setRelease(60.0f);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));doublerLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(0.015f*getSampleRate())));
- juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverb.setParameters(reverbParams);
+ juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jmap(juce::jlimit(50.0f,2000.0f,reverbSizeMs),50.0f,2000.0f,0.08f,0.92f); reverbParams.damping=juce::jmap(reverbParams.roomSize,0.15f,0.75f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverbParams.width=1.0f; reverbParams.freezeMode=0.0f; reverb.setParameters(reverbParams);
  for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.0f);}
  juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);for(auto& f:eqFilters)f.process(ctx);softenFilter.process(ctx);compressor.process(ctx);peakCatcher.process(ctx);
  for(int i=0;i<b.getNumSamples();++i){
@@ -64,6 +66,9 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   b.setSample(0,i,left*(1.0f-doubler*0.30f)+delayedR*doubler*0.30f);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-doubler*0.30f)+delayedL*doubler*0.30f);
  }
  for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
+ if(b.getNumChannels()>=2) reverb.processStereo(b.getWritePointer(0),b.getWritePointer(1),b.getNumSamples());
+ else if(b.getNumChannels()==1) reverb.processMono(b.getWritePointer(0),b.getNumSamples());
+ b.applyGain(juce::Decibels::decibelsToGain(outputGain));
 }
 
 void AjerryVST3AudioProcessor::getStateInformation(juce::MemoryBlock& dest)
