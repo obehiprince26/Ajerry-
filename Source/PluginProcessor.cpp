@@ -30,7 +30,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
 void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
  juce::dsp::ProcessSpec s{sr,(juce::uint32)block,(juce::uint32)getTotalNumOutputChannels()};
  hpFilter.prepare(s);lpFilter.prepare(s);softenFilter.prepare(s);for(auto& f:eqFilters)f.prepare(s);compressor.prepare(s);peakCatcher.prepare(s);delayLine.prepare(s);doublerLine.prepare(s);reverb.reset();
- delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));doublerLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1);delayLine.reset();doublerLine.reset();hpFilter.reset();lpFilter.reset();softenFilter.reset();for(auto& f:eqFilters)f.reset();compressor.reset();peakCatcher.reset();
+ delayLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));doublerLine.setMaximumDelayInSamples(juce::jmax(1,(int)sr-1));delayLine.reset();doublerLine.reset();hpFilter.reset();lpFilter.reset();softenFilter.reset();for(auto& f:eqFilters)f.reset();compressor.reset();peakCatcher.reset();
  hpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeHighPass(sr,80.0f);lpFilter.coefficients=juce::dsp::IIR::Coefficients<float>::makeLowPass(sr,16000.0f);
  compressor.setThreshold(-24.0f);compressor.setRatio(2.0f);compressor.setAttack(25.0f);compressor.setRelease(180.0f);
  peakCatcher.setThreshold(-18.0f);peakCatcher.setRatio(3.0f);peakCatcher.setAttack(2.0f);peakCatcher.setRelease(60.0f);
@@ -51,14 +51,8 @@ void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::Mi
   eqFilters[band].coefficients=juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),safeFreq,0.85f,juce::Decibels::decibelsToGain(db));
  }
  compressor.setThreshold(juce::jlimit(-60.0f,0.0f,thr+6.0f));compressor.setRatio(juce::jlimit(1.0f,3.0f,ratio*0.67f));
- peakCatcher.setThreshold(thr);peakCatcher.setRatio(ratio);peakCatcher.setAttack(2.0f);peakCatcher.setRelease(60.0f);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));
+ peakCatcher.setThreshold(thr);peakCatcher.setRatio(ratio);peakCatcher.setAttack(2.0f);peakCatcher.setRelease(60.0f);delayLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(ms*getSampleRate()/1000.0f)));doublerLine.setDelay(juce::jlimit<int>(1,(int)getSampleRate()-1,(int)(0.015f*getSampleRate())));
  juce::dsp::Reverb::Parameters reverbParams; reverbParams.roomSize=juce::jlimit(0.05f,1.0f,parameters.getRawParameterValue("reverbTime")->load()/2000.0f); reverbParams.wetLevel=rev; reverbParams.dryLevel=1.0f-rev; reverb.setParameters(reverbParams);
- for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.15f);}
- juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);for(auto& f:eqFilters)f.process(ctx);compressor.process(ctx);peakCatcher.process(ctx);
- for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
- b.applyGain(juce::Decibels::decibelsToGain(gain)); reverb.process(ctx);
-}
-juce::AudioProcessorEditor* AjerryVST3AudioProcessor::createEditor(){return new AjerryVST3AudioProcessorEditor(*this);}
-void AjerryVST3AudioProcessor::getStateInformation(juce::MemoryBlock& dest){auto state=parameters.copyState();std::unique_ptr<juce::XmlElement> xml(state.createXml());copyXmlToBinary(*xml,dest);}
-void AjerryVST3AudioProcessor::setStateInformation(const void* data,int size){std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data,size));if(xml&&xml->hasTagName(parameters.state.getType()))parameters.replaceState(juce::ValueTree::fromXml(*xml));}
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter(){return new AjerryVST3AudioProcessor();}
+ for(int c=0;c<b.getNumChannels();++c){if(b.getRMSLevel(c,0,b.getNumSamples())<juce::Decibels::decibelsToGain(gate))b.applyGain(c,0,b.getNumSamples(),0.0f);}
+ juce::dsp::ProcessContextReplacing<float> ctx{juce::dsp::AudioBlock<float>(b)};hpFilter.process(ctx);lpFilter.process(ctx);for(auto& f:eqFilters)f.process(ctx);softenFilter.process(ctx);compressor.process(ctx);peakCatcher.process(ctx);
+ for(int i=0;i<b.getNumSamples();++i){\n  float left=b.getSample(0,i),right=b.getNumChannels()>1?b.getSample(1,i):left;\n  float delayedL=doublerLine.popSample(0),delayedR=b.getNumChannels()>1?doublerLine.popSample(1):delayedL;\n  doublerLine.pushSample(0,left);if(b.getNumChannels()>1)doublerLine.pushSample(1,right);\n  b.setSample(0,i,left*(1.0f-doubler*0.30f)+delayedR*doubler*0.30f);if(b.getNumChannels()>1)b.setSample(1,i,right*(1.0f-doubler*0.30f)+delayedL*doubler*0.30f);\n }\n for(int c=0;c<b.getNumChannels();++c)for(int i=0;i<b.getNumSamples();++i){float dry=b.getSample(c,i),echo=delayLine.popSample(c);delayLine.pushSample(c,dry);b.setSample(c,i,dry*(1.0f-mix)+echo*mix);}
