@@ -20,7 +20,8 @@ public:
  juce::AudioProcessorValueTreeState parameters;
  static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
  float meterGR=0.0f;
- std::atomic<float> analysisRms{0.0f}, analysisLowRms{0.0f}, analysisHighRms{0.0f};\n std::atomic<float> spotPitchHz{0.0f}, spotConfidence{0.0f};\n std::atomic<int> spotMidiNote{-1};\n std::atomic<float> spotMidiFloat{-1.0f};
+ std::atomic<float> analysisRms{0.0f}, analysisLowRms{0.0f}, analysisHighRms{0.0f};
+ std::atomic<float> spotPitchHz{0.0f}, spotConfidence{0.0f};\n std::atomic<int> spotMidiNote{-1};\n std::atomic<float> spotMidiFloat{-1.0f};
 private:
  juce::dsp::IIR::Filter<float> hpFilter,lpFilter,softenFilter;
  std::array<juce::dsp::IIR::Filter<float>,4> eqFilters;
