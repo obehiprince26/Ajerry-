@@ -21,20 +21,22 @@ void AjerryVST3AudioProcessorEditor::changeTab(int p){
  default:a[0]="TIME / SIZE";a[1]="REVERB / ROOM";a[2]="ANALYSIS";v[0]="Studio - 300 ms";v[1]="20% CLEAR VOICE";v[2]="Room tail";f="AJERRY IMPROVED REVERB - Time shows room - Voice stays clear";break;
  }
  const char* mapped[8][3] = {
-  {"gate","gate","gate"},
-  {"tune","tune","tune"},
-  {"hp","lp","hp"},
+  {"gate","gateRange","gateAttack"},
+  {"tune","tuneSpeed","tuneKey"},
+  {"hp","lp","eqGain"},
   {"threshold","ratio","gain"},
-  {"soften","soften","soften"},
-  {"doubler","doubler","doubler"},
-  {"delayTime","delayMix","delayTime"},
-  {"reverbTime","reverbMix","reverbTime"}
+  {"soften","softenFreq","softenMix"},
+  {"doubler","doublerWidth","doublerDelay"},
+  {"delayTime","delayMix","delayFeedback"},
+  {"reverbTime","reverbMix","reverbWidth"}
  };
  for(int i=0;i<3;++i){
   labels[i].setText(a[i],juce::dontSendNotification);
   vals[i].setText(v[i],juce::dontSendNotification);
   knobs[i].setEnabled(true);
+  knobs[i].onValueChange=[this,i]{ vals[i].setText(knobs[i].getTextFromValue(knobs[i].getValue()),juce::dontSendNotification); };
   attachments[i]=std::make_unique<SliderAttachment>(proc.parameters,mapped[p][i],knobs[i]);
+  vals[i].setText(knobs[i].getTextFromValue(knobs[i].getValue()),juce::dontSendNotification);
  }
  footer.setText(f,juce::dontSendNotification);repaint();
 }
