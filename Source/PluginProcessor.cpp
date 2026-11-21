@@ -7,7 +7,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AjerryVST3AudioProcessor::cr
  l.add(std::make_unique<juce::AudioParameterFloat>("gate","Gate",-60.0f,0.0f,-40.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("gateRange","Gate Range",0.0f,60.0f,40.0f));
  l.add(std::make_unique<juce::AudioParameterBool>("gateBypass","Gate Bypass",false));
- l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));
+ l.add(std::make_unique<juce::AudioParameterFloat>("tune","SpotOn Amount",0.0f,100.0f,0.0f));\n l.add(std::make_unique<juce::AudioParameterFloat>("tuneSpeed","SpotOn Speed",0.0f,100.0f,50.0f));\n l.add(std::make_unique<juce::AudioParameterInt>("spotKey","SpotOn Key",0,11,0));\n l.add(std::make_unique<juce::AudioParameterBool>("spotKeyLock","SpotOn Key Lock",true));\n l.add(std::make_unique<juce::AudioParameterBool>("spotBypass","SpotOn Bypass",false));
  l.add(std::make_unique<juce::AudioParameterFloat>("hp","High Pass",20.0f,500.0f,80.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("lp","Low Pass",2000.0f,20000.0f,16000.0f));
  l.add(std::make_unique<juce::AudioParameterFloat>("eqLowFreq","EQ Low Frequency",20.0f,20000.0f,120.0f));
@@ -40,7 +40,16 @@ void AjerryVST3AudioProcessor::prepareToPlay(double sr,int block){
 void AjerryVST3AudioProcessor::releaseResources(){}
 void AjerryVST3AudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&){
  juce::ScopedNoDenormals noDenormals;if(parameters.getRawParameterValue("bypass")->load()>0.5f)return;
- // Lightweight input analysis for the EQ Listen/Suggestion workflow.
+ // SPOTON live pitch tracking (autocorrelation; voiced-note estimate).
+ if (b.getNumSamples() >= 128) {
+  const int n=b.getNumSamples(), minLag=juce::jmax(2,(int)(getSampleRate()/400.0)), maxLag=juce::jmin(n-2,(int)(getSampleRate()/65.0));
+  float best=0.0f; int bestLag=0; double mean=0.0;
+  for(int i=0;i<n;++i){float m=0;for(int ch=0;ch<b.getNumChannels();++ch)m+=b.getSample(ch,i);mean+=m/b.getNumChannels();}
+  mean/=n;
+  for(int lag=minLag;lag<=maxLag;lag++){double corr=0,energyA=0,energyB=0;for(int i=lag;i<n;++i){float a=0,bv=0;for(int ch=0;ch<b.getNumChannels();++ch){a+=b.getSample(ch,i);bv+=b.getSample(ch,i-lag);}a/=b.getNumChannels();bv/=b.getNumChannels();a-=mean;bv-=mean;corr+=a*bv;energyA+=a*a;energyB+=bv*bv;}float norm=(float)(corr/std::sqrt(juce::jmax(1.0e-12,energyA*energyB)));if(norm>best){best=norm;bestLag=lag;}}
+  if(bestLag>0 && best>0.55f){float hz=(float)getSampleRate()/bestLag;spotPitchHz.store(hz);spotMidiNote.store((int)juce::roundToInt(69.0f+12.0f*std::log2(hz/440.0f)));spotConfidence.store(best);}
+ }
+  // Lightweight input analysis for the EQ Listen/Suggestion workflow.
  // Metrics are measured before processing, then published for the editor.
  double blockRms=0.0, blockLow=0.0, blockHigh=0.0;
  const float lowAlpha=1.0f-std::exp(-2.0f*juce::MathConstants<float>::pi*120.0f/(float)getSampleRate());
