@@ -31,6 +31,9 @@ private:
  float gateEnvelope=0.0f;
  float doublerPhase=0.0f;
  std::array<float, 2048> pitchAnalysisBuffer{};
+ // Reused audio-thread scratch avoids repeated stack allocation during pitch analysis.
+ std::array<float, 2048> pitchFrameScratch{};
+ std::array<float, 2048> pitchCmndScratch{};
  int pitchAnalysisWrite=0, pitchAnalysisCount=0, pitchAnalysisCountdown=0;
  float detectedPitchHz=0.0f, pitchRatio=1.0f, pitchShiftPhase=0.0f;
  int pitchHoldSamples=0;
